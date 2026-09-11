@@ -114,6 +114,15 @@ hr{border:none;border-top:1px solid var(--line);margin:16px 0}
 .modal-ov.on{display:flex}
 .modal-box{background:var(--card);border-radius:14px;padding:18px;width:100%;max-width:300px}
 .modal-box p{font-size:13.5px;color:var(--ink);white-space:pre-line}
+.installbar{position:fixed;top:0;left:0;right:0;background:var(--bark);color:var(--paper);
+  padding:10px 14px;display:none;align-items:center;justify-content:space-between;
+  font-size:12.5px;line-height:1.5;z-index:50;gap:10px}
+.installbar.show{display:flex}
+.installbar .msg{flex:1}
+.installbar .acts{display:flex;gap:6px;flex:none;align-items:center}
+.installbar button{background:var(--paper);color:var(--bark);border:none;border-radius:8px;
+  padding:7px 12px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.installbar .x{background:none;color:var(--paper);font-size:16px;padding:2px 6px;font-weight:400}
 .modal-box .acts{display:flex;gap:8px;margin-top:16px}
 .splash{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px}
 .spin{width:26px;height:26px;border:2.5px solid var(--line);border-top-color:var(--bark);
@@ -127,6 +136,13 @@ hr{border:none;border-top:1px solid var(--line);margin:16px 0}
 </head>
 <body>
 <div id="app"><div class="screen"><div class="splash"><div class="spin"></div><p class="sub">불러오는 중</p></div></div></div>
+<div class="installbar" id="installBar">
+  <span class="msg" id="installMsg">슼터디를 홈 화면에 설치하고 앱처럼 써보세요</span>
+  <div class="acts">
+    <button id="installBtn" onclick="doInstall()">설치</button>
+    <button class="x" onclick="hideInstallBar()">✕</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 <div class="modal-ov" id="modalOv"><div class="modal-box" id="modalBox"></div></div>
 
@@ -1448,6 +1464,61 @@ if('serviceWorker' in navigator){
     });
   });
 }
+
+/* ---------- 설치 배너 ----------
+ * 크롬/안드로이드: beforeinstallprompt 이벤트를 잡아뒀다가, 이 배너의 "설치" 버튼을
+ *   누르는 시점에 그 이벤트로 네이티브 설치창을 띄웁니다. (주소창의 작은 설치 아이콘은
+ *   놓치기 쉬워서, 눈에 잘 띄는 배너를 따로 보여주는 거예요.)
+ * iOS 사파리: beforeinstallprompt 자체를 지원하지 않아서, 대신 "공유 → 홈 화면에 추가"
+ *   안내 문구로 대체합니다.
+ * 이미 설치되어 실행 중이거나, 사용자가 닫기(✕)를 누른 적이 있으면 다시 보여주지 않습니다.
+ */
+(function(){
+  var bar=document.getElementById('installBar');
+  var msg=document.getElementById('installMsg');
+  var btn=document.getElementById('installBtn');
+  var deferred=null;
+
+  function isStandalone(){
+    return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true;
+  }
+  function isIOS(){
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  }
+  function dismissedRecently(){
+    try{
+      var t=localStorage.getItem('installDismissedAt');
+      return t && (Date.now()-parseInt(t,10))<7*24*60*60*1000; // 닫으면 7일간 다시 안 보여줌
+    }catch(e){return false;}
+  }
+  window.hideInstallBar=function(){
+    bar.classList.remove('show');
+    try{localStorage.setItem('installDismissedAt',String(Date.now()));}catch(e){}
+  };
+  window.doInstall=function(){
+    if(!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.finally(function(){deferred=null; bar.classList.remove('show');});
+  };
+
+  if(isStandalone()||dismissedRecently()) return;
+
+  if(isIOS()){
+    msg.textContent='공유 버튼(⬆️)을 누르고 "홈 화면에 추가"를 선택해보세요';
+    btn.style.display='none';
+    bar.classList.add('show');
+  } else {
+    window.addEventListener('beforeinstallprompt',function(e){
+      e.preventDefault();
+      deferred=e;
+      bar.classList.add('show');
+    });
+    window.addEventListener('appinstalled',function(){
+      deferred=null;
+      bar.classList.remove('show');
+    });
+  }
+})();
 </script>
 </body>
 </html>
