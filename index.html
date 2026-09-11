@@ -177,6 +177,9 @@ var subs=[], msgSubs={}, signingUp=false, gotPub=false;
 var view={name:'splash'}, draft={};
 var LIVE={home:1,detail:1,manage:1,chats:1,chat:1,alerts:1,settings:1};
 
+/* 채팅 메시지 보관 기간 (48시간) — 이 시간이 지나면 자동으로 화면에서 사라지고 삭제됩니다 */
+var MSG_TTL_MS=48*60*60*1000;
+
 /* ---------- 접근자 ---------- */
 function me(){return ME;}
 function user(id){return USERS[id]||{id:id,nick:'알 수 없음',grade:'',notif:{}};}
@@ -341,10 +344,10 @@ function subscribe(uid){
   },fail));
   subs.push(c.onSnapshot(c.collection(db,'users'),function(qs){
     USERS={}; docs(qs).forEach(function(u){USERS[u.id]=u});
-    loaded.users=true; refresh();
+    refresh();
   },fail));
   subs.push(c.onSnapshot(c.collection(db,'studies'),function(qs){
-    STUDIES=docs(qs); loaded.studies=true; syncMsgSubs(); refresh();
+    STUDIES=docs(qs); syncMsgSubs(); refresh();
   },fail));
   subs.push(c.onSnapshot(c.query(c.collection(db,'applications'),c.where('user','==',uid)),
     function(qs){APPS_MINE=docs(qs); refresh();},fail));
@@ -379,9 +382,18 @@ function syncMsgSubs(){
     msgSubs[id]=FB.onSnapshot(
       FB.query(FB.collection(db,'studies',id,'messages'),FB.orderBy('at','desc'),FB.limit(200)),
       function(qs){
-        MSGS[id]=docs(qs).sort(function(a,b){return a.at-b.at});
+        var all=docs(qs);
+        var cutoff=Date.now()-MSG_TTL_MS;
+        var fresh=[], old=[];
+        all.forEach(function(m){(m.at<cutoff?old:fresh).push(m);});
+        MSGS[id]=fresh.sort(function(a,b){return a.at-b.at});
         refresh();
-      },function(e){console.warn(e)});
+        if(old.length){
+          var b=FB.writeBatch(db);
+          old.forEach(function(m){b.delete(FB.doc(db,'studies',id,'messages',m.id));});
+          b.commit().catch(function(e){console.warn('old message cleanup failed',e);});
+        }
+      },function(e){console.warn(e);});
   });
 }
 
@@ -985,6 +997,7 @@ function delStudy(id){
       }).catch(fail);
   });
 }
+
 /* ---------- 채팅 ---------- */
 SCREENS.chats=function(){
   if(!ME) return SCREENS.splash();
@@ -1009,6 +1022,7 @@ SCREENS.chat=function(id){
   return '<section class="screen">'+head(s.title,'chats')+'<div class="scroll" id="chatbox">'+
     '<div class="sys">매칭이 확정되었습니다.<br>모임 장소: '+esc(s.place)+' · '+esc(s.region)+'<br>'+esc(s.day)+'요일 '+esc(s.time)+'</div>'+
     '<div class="sys" style="background:var(--wait-bg);color:var(--wait-fg)">전화번호나 SNS 아이디를 주고받지 않아도 괜찮아요. 불편한 일이 있으면 신고할 수 있습니다.</div>'+
+    '<div class="sys">메시지는 보낸 지 48시간이 지나면 자동으로 사라져요.</div>'+
     ms.map(function(m){
       if(m.user==='sys') return '<div class="sys">'+esc(m.text)+'</div>';
       if(m.user===ME.id) return '<div class="msg me">'+esc(m.text)+'</div>';
@@ -1236,21 +1250,4 @@ SCREENS.safety=function(){
 };
 </script>
 </body>
-  <script>
-  window.addEventListener('fb-fail', function(e) {
-    var msg = (e.detail || {}).message || '알 수 없는 에러';
-    document.getElementById('app').innerHTML = 
-      '<div style="padding:30px;text-align:center;white-space:pre-wrap">'
-      + 'Firebase 초기화 실패\n\n' + msg + '\n\n'
-      + 'F12 콘솔을 확인해 주세요.'
-      + '</div>';
-  });
-  
-  // 5초마다 상태 출력
-  setInterval(function() {
-    if (view.name === 'splash') {
-      console.log('Still loading...', {ready: !!FB, uid: UID, me: !!ME});
-    }
-  }, 5000);
-  </script>
 </html>
