@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>슼터디 — 고등학생 스터디 매칭 플랫폼</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --paper:#F5EEE3; --card:#FFFFFF; --line:#D9C9B3; --bark:#8C6F52;
+  --deep:#6B5A41; --ink:#4A3B2A; --faint:#A6906F; --sand:#EDE1CF;
+  --ok-bg:#E7EFDC; --ok-fg:#3F5B22; --wait-bg:#F7E9D0; --wait-fg:#7A5512;
+  --no-bg:#F2E2DE; --no-fg:#8A4436;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:#E4D7C3;color:var(--ink);
+  display:flex;justify-content:center;padding:20px 10px;min-height:100vh}
+#app{width:100%;max-width:400px;background:var(--paper);border-radius:26px;
+  border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;
+  min-height:780px;position:relative}
+.screen{display:flex;flex-direction:column;flex:1;padding:18px 16px}
+.screen.hasnav{padding-bottom:76px}
+h1{font-size:21px;font-weight:600;line-height:1.35}
+h2{font-size:16px;font-weight:600;margin-bottom:9px}
+p{font-size:13px;color:var(--deep);line-height:1.65}
+.sub{font-size:12px;color:var(--faint);line-height:1.6}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:15px}
+.back{background:none;border:none;font-size:19px;color:var(--bark);cursor:pointer;line-height:1}
+.title{font-size:16px;font-weight:600}
+button{font-family:inherit;cursor:pointer}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;background:var(--bark);
+  color:var(--paper);font-size:14.5px;font-weight:500}
+.btn:disabled{background:#CFC0AC;cursor:not-allowed}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--deep)}
+.btn.kakao{background:#FEE500;color:#3A2A16}
+.btn.danger{background:transparent;border:1px solid var(--line);color:#8A4436}
+.btn.sm{width:auto;padding:8px 14px;font-size:13px;border-radius:9px}
+.field{margin-bottom:13px}
+label{display:block;font-size:12.5px;color:var(--deep);margin-bottom:6px;font-weight:500}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);
+  border-radius:10px;background:var(--card);font-family:inherit;font-size:13.5px;color:var(--ink)}
+textarea{resize:vertical;min-height:72px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--bark);outline-offset:-1px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:13px;margin-bottom:10px}
+.card.tap{cursor:pointer}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.name{font-size:14.5px;font-weight:600}
+.meta{font-size:12px;color:var(--bark);margin-top:5px;line-height:1.6}
+.pill{font-size:11px;padding:3px 9px;border-radius:20px;white-space:nowrap;display:inline-block}
+.pill.ok{background:var(--ok-bg);color:var(--ok-fg)}
+.pill.wait{background:var(--wait-bg);color:var(--wait-fg)}
+.pill.no{background:var(--no-bg);color:var(--no-fg)}
+.pill.tag{background:var(--sand);color:var(--deep)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.chip{font-size:12px;padding:6px 12px;border-radius:20px;background:var(--card);
+  border:1px solid var(--line);color:var(--deep);cursor:pointer}
+.chip.on{background:var(--bark);color:var(--paper);border-color:var(--bark)}
+.tabs{display:flex;gap:4px;background:var(--sand);border-radius:11px;padding:3px;margin-bottom:13px}
+.tab{flex:1;border:none;padding:9px;font-size:13px;border-radius:9px;background:transparent;color:var(--deep)}
+.tab.on{background:var(--bark);color:var(--paper)}
+.agree{display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.agree:last-child{border-bottom:none}
+.agree input{width:18px;height:18px;flex:none;margin-top:2px;accent-color:var(--bark)}
+.agree .t{font-size:13.5px;font-weight:500}
+.agree .d{font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.55}
+.note{background:var(--sand);border-radius:11px;padding:12px;font-size:12px;
+  color:var(--deep);line-height:1.7}
+.err{font-size:12px;color:#8A4436;margin-top:6px}
+.dl{font-size:12.5px;line-height:1.95}
+.dl b{font-weight:500;color:var(--deep);display:inline-block;width:80px}
+.scroll{flex:1;overflow-y:auto}
+.empty{text-align:center;padding:48px 16px}
+.empty .ic{font-size:28px;color:var(--faint);margin-bottom:10px}
+.empty .h{font-size:14.5px;font-weight:600;margin-bottom:6px}
+.setrow{display:flex;justify-content:space-between;align-items:center;padding:14px 0;
+  border-bottom:1px solid var(--line);gap:12px;cursor:pointer}
+.setrow .t{font-size:13.5px;font-weight:500}
+.setrow .d{font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.55}
+.setrow input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--bark)}
+.link{background:none;border:none;color:var(--bark);font-size:12.5px;text-decoration:underline}
+.alert{display:flex;gap:11px;padding:13px 0;border-bottom:1px solid var(--line)}
+.alert .dot{width:7px;height:7px;border-radius:50%;background:var(--bark);flex:none;margin-top:6px}
+.alert .dot.read{background:var(--line)}
+.alert .b{font-size:13px;line-height:1.6}
+.alert .tm{font-size:11.5px;color:var(--faint);margin-top:4px}
+.msg{max-width:78%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.55;margin-bottom:8px}
+.msg.them{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.me{background:var(--bark);color:var(--paper);margin-left:auto;border-bottom-right-radius:4px}
+.msg .who{font-size:11px;opacity:.75;margin-bottom:3px}
+.sys{text-align:center;font-size:11.5px;color:var(--faint);background:var(--sand);
+  padding:9px 12px;border-radius:10px;margin-bottom:11px;line-height:1.6}
+.nav{position:absolute;bottom:0;left:0;right:0;display:flex;background:var(--card);
+  border-top:1px solid var(--line)}
+.nav button{flex:1;border:none;background:none;padding:11px 0 15px;font-size:11.5px;color:var(--faint)}
+.nav button.on{color:var(--bark);font-weight:600}
+.badge{background:var(--bark);color:var(--paper);font-size:10px;padding:1px 6px;
+  border-radius:10px;margin-left:3px}
+hr{border:none;border-top:1px solid var(--line);margin:16px 0}
+.toast{position:absolute;left:16px;right:16px;bottom:86px;background:var(--ink);
+  color:var(--paper);padding:12px 14px;border-radius:12px;font-size:12.5px;line-height:1.6;
+  opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+.modal-ov{position:absolute;inset:0;background:rgba(74,59,42,.45);display:none;
+  align-items:center;justify-content:center;padding:20px;z-index:20;border-radius:26px}
+.modal-ov.on{display:flex}
+.modal-box{background:var(--card);border-radius:14px;padding:18px;width:100%;max-width:300px}
+.modal-box p{font-size:13.5px;color:var(--ink);white-space:pre-line}
+.modal-box .acts{display:flex;gap:8px;margin-top:16px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<div class="modal-ov" id="modalOv"><div class="modal-box" id="modalBox"></div></div>
+
+<script>
+/* ---------- 상태 ---------- */
+var KEY='gachi_interview_v1';
+var S=null, view={name:'login'}, draft={};
+
+function seed(){
+  return {
+    users:[
+      {id:'u1',nick:'민트초코러버',username:'mint01',password:'1234',grade:2,cls:5,num:12,phone:'010-1111-2222',
+       goal:'학생부종합',marketing:false,
+       notif:{result:true,change:true,close:true,remind:true,apply:true,chat:true,night:true}},
+      {id:'u2',nick:'노랑풍선',username:'yellow02',password:'1234',grade:2,cls:3,num:7,phone:'010-2222-3333',
+       goal:'특목고',marketing:true,
+       notif:{result:true,change:true,close:true,remind:true,apply:true,chat:true,night:true}},
+      {id:'u3',nick:'책읽는고양이',username:'cat03',password:'1234',grade:1,cls:8,num:21,phone:'010-3333-4444',
+       goal:'학생부종합',marketing:false,
+       notif:{result:true,change:true,close:true,remind:true,apply:true,chat:true,night:true}}
+    ],
+    studies:[
+      {id:'s1',host:'u2',title:'학생부종합 면접 대비반',mode:'오프라인',place:'스터디카페',
+       region:'강남역 도보 5분',day:'토',time:'15:00',cap:6,deadline:'2026-09-20',
+       desc:'주 1회 만나서 서로 예상 질문을 주고받고 피드백합니다. 자기소개서를 미리 읽어보고 오면 좋아요.',
+       grades:[1,2],level:'처음이어도 괜찮아요',
+       qs:['어떤 전형을 준비하고 있나요?'],members:['u2','u3'],closed:false},
+      {id:'s2',host:'u3',title:'과학고 구술면접 스터디',mode:'오프라인',place:'공공도서관',
+       region:'서초역 도보 3분',day:'일',time:'10:00',cap:4,deadline:'2026-09-25',
+       desc:'기출 구술 문항을 함께 풀고 설명하는 연습을 합니다.',
+       grades:[1,2,3],level:'상관없음',qs:['가장 자신 있는 과목은 무엇인가요?'],
+       members:['u3'],closed:false},
+      {id:'s3',host:'u2',title:'자소서 기반 예상질문 연습',mode:'온라인',place:'화상',
+       region:'온라인',day:'수',time:'20:00',cap:6,deadline:'2026-09-15',
+       desc:'각자 자소서를 공유하고 예상 질문을 만들어 봅니다.',
+       grades:[2,3],level:'해본 적 있어요',qs:[],members:['u2','u1','u3'],closed:false}
+    ],
+    apps:[
+      {id:'a1',study:'s2',user:'u1',intro:'과학고 자기주도학습 전형을 준비하고 있어요. 구술이 약해서 같이 연습하고 싶습니다.',
+       answers:['물리를 가장 좋아해요'],level:'처음이에요',status:'pending',at:Date.now()-86400000}
+    ],
+    msgs:[
+      {id:'m1',study:'s1',user:'u2',text:'다들 반가워요! 토요일에 만나기 전에 예상 질문 3개씩 준비해올까요?',at:Date.now()-7200000}
+    ],
+    notis:[
+      {id:'n1',user:'u1',text:'슼터디에 오신 걸 환영해요. 관심 있는 스터디에 지원해 보세요.',
+       kind:'안내',at:Date.now()-3600000,read:false}
+    ],
+    me:null, seq:100
+  };
+}
+function load(){
+  try{var r=localStorage.getItem(KEY); S=r?JSON.parse(r):seed();}
+  catch(e){S=seed();}
+  if(!S||!S.users) S=seed();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function nid(p){S.seq++;return p+S.seq;}
+function me(){return S.users.filter(function(u){return u.id===S.me})[0]||null;}
+function user(id){return S.users.filter(function(u){return u.id===id})[0]||{nick:'알 수 없음'};}
+function study(id){return S.studies.filter(function(s){return s.id===id})[0];}
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ---------- 알림 ---------- */
+function notify(uid,text,kind,pref){
+  var u=user(uid);
+  if(pref&&u.notif&&u.notif[pref]===false) return;
+  S.notis.push({id:nid('n'),user:uid,text:text,kind:kind,at:Date.now(),read:false});
+}
+function unread(){
+  if(!S.me) return 0;
+  return S.notis.filter(function(n){return n.user===S.me&&!n.read}).length;
+}
+
+/* ---------- 유틸 ---------- */
+function ago(t){
+  var d=Date.now()-t, m=Math.floor(d/60000);
+  if(m<1) return '방금';
+  if(m<60) return m+'분 전';
+  var h=Math.floor(m/60); if(h<24) return h+'시간 전';
+  return Math.floor(h/24)+'일 전';
+}
+function dleft(ds){
+  var d=Math.ceil((new Date(ds+'T23:59:59')-Date.now())/86400000);
+  return d;
+}
+function toast(t){
+  var el=document.getElementById('toast');
+  el.innerHTML=esc(t).replace(/\n/g,'<br>');
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t=setTimeout(function(){el.classList.remove('on')},3200);
+}
+function go(name,arg){view={name:name,arg:arg};render();}
+
+/* ---------- 커스텀 확인창 (샌드박스에서 confirm/prompt 차단 대응) ---------- */
+var pendingYes=null;
+function askConfirm(msg,onYes){
+  pendingYes=onYes;
+  document.getElementById('modalBox').innerHTML='<p>'+esc(msg)+'</p>'+
+    '<div class="acts"><button class="btn ghost" style="flex:1" onclick="closeModal()">취소</button>'+
+    '<button class="btn" style="flex:1" onclick="confirmYes()">확인</button></div>';
+  document.getElementById('modalOv').classList.add('on');
+}
+function confirmYes(){var f=pendingYes; closeModal(); if(f) f();}
+function closeModal(){document.getElementById('modalOv').classList.remove('on'); pendingYes=null;}
+function askPick(title,items,onPick){
+  document.getElementById('modalBox').innerHTML='<p style="font-weight:500;margin-bottom:10px">'+esc(title)+'</p>'+
+    items.map(function(it,i){
+      return '<button class="btn ghost" style="width:100%;margin-bottom:7px" onclick="pickItem('+i+')">'+esc(it.label)+'</button>';
+    }).join('')+
+    '<button class="btn ghost" style="width:100%" onclick="closeModal()">닫기</button>';
+  window._pickItems=items; window._pickFn=onPick;
+  document.getElementById('modalOv').classList.add('on');
+}
+function pickItem(i){var it=window._pickItems[i], f=window._pickFn; closeModal(); if(f) f(it.value);}
+
+/* ---------- 렌더 ---------- */
+function render(){
+  var f=SCREENS[view.name]||SCREENS.login;
+  document.getElementById('app').innerHTML=f(view.arg);
+  save();
+}
+function nav(active){
+  var n=unread();
+  var items=[['home','홈'],['create','개설'],['chats','채팅'],
+             ['alerts','알림'+(n?'<span class="badge">'+n+'</span>':'')],['settings','설정']];
+  return '<nav class="nav">'+items.map(function(i){
+    return '<button class="'+(active===i[0]?'on':'')+'" onclick="go(\''+i[0]+'\')">'+i[1]+'</button>';
+  }).join('')+'</nav>';
+}
+function head(title,back){
+  return '<div class="top">'+(back?'<button class="back" onclick="go(\''+back+'\')">←</button>':'')+
+    '<span class="title">'+esc(title)+'</span></div>';
+}
+function emptyBox(ic,h,p,btn,act){
+  return '<div class="empty"><div class="ic">'+ic+'</div><div class="h">'+esc(h)+'</div>'+
+    '<p>'+p+'</p>'+(btn?'<button class="btn sm" style="margin-top:14px" onclick="'+act+'">'+esc(btn)+'</button>':'')+'</div>';
+}
+
+var SCREENS={};
+
+/* 로그인 (약관 동의 포함) */
+SCREENS.login=function(){
+  return '<section class="screen">'+
+    '<div style="flex:1;display:flex;flex-direction:column;justify-content:center">'+
+    '<h1>혼자 준비하느라<br>고생많았습니다</h1>'+
+    '<p style="margin-top:10px">이제 같이 준비할 친구를 구해보세요!<br>우리 학교 학생들이 모인 스터디 공간입니다.</p>'+
+    '<div class="card" id="loginAgree" style="margin-top:18px;padding:4px 13px">'+
+    '<div class="agree"><input type="checkbox" id="loginAgAll" onchange="allAgreeLogin(this)">'+
+    '<div><div class="t">모두 동의합니다</div><div class="d">선택 항목 동의를 포함합니다.</div></div></div>'+
+    '<div class="agree"><input type="checkbox" class="ag req" onchange="syncLoginAg()">'+
+    '<div><div class="t">(필수) 서비스 이용약관</div><div class="d">회원 자격, 스터디 이용 규칙, 운영 책임 범위를 포함합니다.</div></div></div>'+
+    '<div class="agree"><input type="checkbox" class="ag req" onchange="syncLoginAg()">'+
+    '<div><div class="t">(필수) 개인정보 수집 및 이용</div><div class="d">수집 항목: 아이디, 비밀번호, 학년·반·번호, 전화번호, 닉네임.<br>목적: 재학생 확인 및 스터디 매칭.<br>보유 기간: 회원 탈퇴 시까지.</div></div></div>'+
+    '<div class="agree"><input type="checkbox" class="ag" id="loginAgMk" onchange="syncLoginAg()">'+
+    '<div><div class="t">(선택) 마케팅 정보 수신</div><div class="d">새 스터디 추천과 이벤트 소식을 받습니다. 동의하지 않아도 이용할 수 있어요.</div></div></div>'+
+    '</div>'+
+    '<div class="field" style="margin-top:16px"><label>아이디</label>'+
+    '<input id="li_id" placeholder="아이디"></div>'+
+    '<div class="field"><label>비밀번호</label>'+
+    '<input id="li_pw" type="password" placeholder="비밀번호"></div>'+
+    '<div style="display:flex;flex-direction:column;gap:9px">'+
+    '<button class="btn" id="loginBtn" disabled onclick="doLogin()">로그인</button>'+
+    '<button class="btn ghost" id="signupBtn" disabled onclick="toSignup()">회원가입하기</button></div>'+
+    '<div id="le"></div>'+
+    '<p class="sub" style="margin-top:12px;text-align:center" id="loginAgHint">필수 약관에 동의해야 로그인·가입할 수 있어요.</p>'+
+    '<div style="text-align:center;margin-top:6px"><button class="link" onclick="go(\'findpw\')">비밀번호를 잊었어요</button></div>'+
+    '</div>'+
+    '<p class="sub" style="text-align:center">우리 학교 재학생만 가입할 수 있어요.</p>'+
+    '</section>';
+};
+function syncLoginAg(){
+  var scope=document.getElementById('loginAgree');
+  var ok=true, all=true;
+  scope.querySelectorAll('.ag.req').forEach(function(c){if(!c.checked)ok=false});
+  scope.querySelectorAll('.ag').forEach(function(c){if(!c.checked)all=false});
+  ['loginBtn','signupBtn'].forEach(function(id){document.getElementById(id).disabled=!ok;});
+  document.getElementById('loginAgAll').checked=all;
+  document.getElementById('loginAgHint').style.display=ok?'none':'block';
+}
+function allAgreeLogin(b){
+  document.getElementById('loginAgree').querySelectorAll('.ag').forEach(function(c){c.checked=b.checked});
+  syncLoginAg();
+}
+function doLogin(){
+  var id=document.getElementById('li_id').value.trim();
+  var pw=document.getElementById('li_pw').value;
+  var u=S.users.filter(function(x){return x.username===id})[0];
+  if(!u||u.password!==pw){document.getElementById('le').innerHTML='<div class="err">아이디 또는 비밀번호가 올바르지 않아요.</div>';return;}
+  draft.marketing=document.getElementById('loginAgMk').checked;
+  u.marketing = u.marketing || draft.marketing;
+  S.me=u.id; go('home');
+}
+function toSignup(){
+  draft.marketing=document.getElementById('loginAgMk').checked;
+  go('signup');
+}
+
+SCREENS.findpw=function(){
+  return '<section class="screen">'+head('비밀번호 찾기','login')+
+    '<div class="scroll"><p>가입할 때 등록한 아이디와 전화번호를 입력하면 임시 비밀번호를 발급해 드려요.</p>'+
+    '<div class="field" style="margin-top:16px"><label>아이디</label>'+
+    '<input id="pm_id" placeholder="아이디"></div>'+
+    '<div class="field"><label>전화번호</label>'+
+    '<input id="pm_phone" placeholder="010-0000-0000"><div id="pe"></div></div></div>'+
+    '<button class="btn" onclick="sendPw()">임시 비밀번호 발급</button></section>';
+};
+function sendPw(){
+  var id=document.getElementById('pm_id').value.trim();
+  var ph=document.getElementById('pm_phone').value.trim();
+  var u=S.users.filter(function(x){return x.username===id&&x.phone===ph})[0];
+  if(!u){document.getElementById('pe').innerHTML='<div class="err">일치하는 계정을 찾을 수 없어요.</div>';return;}
+  u.password='0000';
+  toast('임시 비밀번호는 0000 이에요.\n로그인 후 꼭 새 비밀번호로 바꿔주세요.'); go('login');
+}
+
+/* 가입 */
+SCREENS.signup=function(){
+  return '<section class="screen">'+head('회원가입','login')+
+    '<div class="scroll">'+
+    '<div class="field"><label>아이디</label><input id="su_id" placeholder="영문·숫자 4자 이상"></div>'+
+    '<div class="field"><label>비밀번호</label><input id="su_pw" type="password" placeholder="4자 이상"></div>'+
+    '<div class="field"><label>비밀번호 확인</label><input id="su_pw2" type="password" placeholder="비밀번호 다시 입력"></div>'+
+    '<div class="field"><label>닉네임</label><input id="su_nick" placeholder="스터디에서 보일 이름">'+
+    '<p class="sub" style="margin-top:6px">학년·반·번호는 스터디 매칭이 확정된 뒤에만 상대에게 공개됩니다.</p></div>'+
+    '<div class="field"><label>학년</label><select id="su_grade">'+
+    '<option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option></select></div>'+
+    '<div class="field"><label>반</label><input id="su_cls" type="number" min="1" max="20" placeholder="예: 5"></div>'+
+    '<div class="field"><label>번호</label><input id="su_num" type="number" min="1" max="40" placeholder="예: 12"></div>'+
+    '<div class="field"><label>전화번호</label><input id="su_phone" placeholder="010-0000-0000"></div>'+
+    '<div class="field"><label>준비 목표</label><select id="su_goal">'+
+    '<option>학생부종합</option><option>특목고</option><option>대회·동아리</option><option>기타</option></select></div>'+
+    '<div id="su_err"></div></div>'+
+    '<button class="btn" onclick="doSignup()">가입 완료</button></section>';
+};
+function doSignup(){
+  var id=document.getElementById('su_id').value.trim();
+  var pw=document.getElementById('su_pw').value;
+  var pw2=document.getElementById('su_pw2').value;
+  var n=document.getElementById('su_nick').value.trim();
+  var cls=parseInt(document.getElementById('su_cls').value,10);
+  var num=parseInt(document.getElementById('su_num').value,10);
+  var phone=document.getElementById('su_phone').value.trim();
+  var e=document.getElementById('su_err');
+  if(id.length<4){e.innerHTML='<div class="err">아이디를 4자 이상 입력해 주세요.</div>';return;}
+  if(S.users.some(function(u){return u.username===id})){
+    e.innerHTML='<div class="err">이미 사용 중인 아이디예요.</div>';return;}
+  if(pw.length<4){e.innerHTML='<div class="err">비밀번호를 4자 이상 입력해 주세요.</div>';return;}
+  if(pw!==pw2){e.innerHTML='<div class="err">비밀번호가 서로 달라요.</div>';return;}
+  if(n.length<2){e.innerHTML='<div class="err">닉네임을 2글자 이상 입력해 주세요.</div>';return;}
+  if(!cls||cls<1||cls>20){e.innerHTML='<div class="err">반을 올바르게 입력해 주세요.</div>';return;}
+  if(!num||num<1||num>40){e.innerHTML='<div class="err">번호를 올바르게 입력해 주세요.</div>';return;}
+  if(!/^01[016789]-?\d{3,4}-?\d{4}$/.test(phone)){e.innerHTML='<div class="err">전화번호 형식을 확인해 주세요.</div>';return;}
+  var u={id:nid('u'),nick:n,username:id,password:pw,
+    grade:parseInt(document.getElementById('su_grade').value,10),cls:cls,num:num,phone:phone,
+    goal:document.getElementById('su_goal').value,marketing:!!draft.marketing,
+    notif:{result:true,change:true,close:true,remind:true,apply:true,chat:true,night:true}};
+  S.users.push(u); S.me=u.id; draft={};
+  notify(u.id,'슼터디에 오신 걸 환영해요. 관심 있는 스터디에 지원해 보세요.','안내');
+  go('home');
+}
+
+/* 홈 */
+SCREENS.home=function(tab){
+  if(!S.me) return SCREENS.login();
+  tab=tab||'explore';
+  var body = tab==='explore' ? exploreList() : mineList();
+  return '<section class="screen hasnav">'+
+    '<div class="row" style="margin-bottom:13px"><span style="font-size:17px;font-weight:600">스터디 매칭</span>'+
+    '<button class="link" style="text-decoration:none" onclick="go(\'alerts\')">알림'+(unread()?' '+unread():'')+'</button></div>'+
+    '<div class="tabs"><button class="tab '+(tab==='explore'?'on':'')+'" onclick="go(\'home\',\'explore\')">탐색</button>'+
+    '<button class="tab '+(tab==='mine'?'on':'')+'" onclick="go(\'home\',\'mine\')">내 스터디</button></div>'+
+    '<div class="scroll">'+body+'</div>'+nav('home')+'</section>';
+};
+var filt={mode:'',region:'',days:[],goal:'',sort:'room'};
+function passFilter(s){
+  if(s.closed) return false;
+  if(filt.mode&&s.mode!==filt.mode) return false;
+  if(filt.region&&s.region.indexOf(filt.region)<0) return false;
+  if(filt.days.length&&filt.days.indexOf(s.day)<0) return false;
+  return true;
+}
+function exploreList(){
+  var list=S.studies.filter(passFilter);
+  list.sort(function(a,b){
+    if(filt.sort==='room') return (b.cap-b.members.length)-(a.cap-a.members.length);
+    if(filt.sort==='deadline') return new Date(a.deadline)-new Date(b.deadline);
+    return 0;
+  });
+  var h='<div class="card tap" style="display:flex;gap:8px;align-items:center;color:var(--faint);font-size:13px" onclick="go(\'filter\')">'+
+    '<span>⌕</span><span>'+(filtLabel()||'지역, 요일, 목표로 검색')+'</span></div>';
+  if(!list.length){
+    h+=emptyBox('⌕','조건에 맞는 스터디가 없어요',
+      '지역을 넓히거나 요일 조건을 풀어보세요.<br>직접 열면 비슷한 친구들이 찾아올 거예요.',
+      '필터 초기화','resetFilt()');
+    return h;
+  }
+  h+=list.map(studyCard).join('');
+  h+='<button class="btn ghost" style="margin-top:6px" onclick="go(\'create\')">스터디 개설하기</button>';
+  return h;
+}
+function filtLabel(){
+  var p=[];
+  if(filt.mode)p.push(filt.mode);
+  if(filt.region)p.push(filt.region);
+  if(filt.days.length)p.push(filt.days.join('·')+'요일');
+  return p.join(' · ');
+}
+function resetFilt(){filt={mode:'',region:'',days:[],goal:'',sort:'room'};go('home','explore');}
+function studyCard(s){
+  var left=s.cap-s.members.length, d=dleft(s.deadline);
+  return '<div class="card tap" onclick="go(\'detail\',\''+s.id+'\')">'+
+    '<div class="row"><span class="name">'+esc(s.title)+'</span><span class="pill tag">'+esc(s.mode)+'</span></div>'+
+    '<div class="meta">'+esc(s.region)+' · '+esc(s.day)+'요일 '+esc(s.time)+'<br>'+
+    s.members.length+'/'+s.cap+'명 · '+(d>0?('마감까지 '+d+'일'):'모집 마감')+
+    (left<=0?' · 대기 신청 가능':'')+'</div></div>';
+}
+function mineList(){
+  var joined=S.studies.filter(function(s){return s.members.indexOf(S.me)>=0&&s.host!==S.me});
+  var hosted=S.studies.filter(function(s){return s.host===S.me});
+  var pend=S.apps.filter(function(a){return a.user===S.me&&a.status!=='approved'});
+  var h='';
+  if(!joined.length&&!hosted.length&&!pend.length)
+    return emptyBox('◌','참여 중인 스터디가 없어요',
+      '마음에 드는 스터디에 지원해 보세요.<br>승인되면 여기에 모임 일정이 표시됩니다.',
+      '스터디 둘러보기','go(\'home\',\'explore\')');
+  if(joined.length){
+    h+=joined.map(function(s){
+      return '<div class="card tap" onclick="go(\'chat\',\''+s.id+'\')">'+
+        '<div class="row"><span class="name">'+esc(s.title)+'</span><span class="pill ok">참여중</span></div>'+
+        '<div class="meta">'+esc(s.day)+'요일 '+esc(s.time)+' · '+esc(s.region)+'<br>'+esc(s.place)+'</div></div>';
+    }).join('');
+  }
+  if(pend.length){
+    h+=pend.map(function(a){
+      var s=study(a.study); if(!s) return '';
+      var st=a.status==='pending'?['wait','승인 대기']:['no','거절됨'];
+      return '<div class="card"><div class="row"><span class="name">'+esc(s.title)+'</span>'+
+        '<span class="pill '+st[0]+'">'+st[1]+'</span></div>'+
+        '<div class="meta">'+ago(a.at)+' 지원'+
+        (a.status==='pending'?'<br>모임 장소는 승인 후 공개됩니다':'')+'</div>'+
+        (a.status==='pending'?'<button class="btn ghost" style="margin-top:10px" onclick="cancelApp(\''+a.id+'\')">지원 취소</button>':'')+
+        '</div>';
+    }).join('');
+  }
+  if(hosted.length){
+    h+='<hr><h2 style="font-size:14px">내가 연 스터디</h2>';
+    h+=hosted.map(function(s){
+      var p=S.apps.filter(function(a){return a.study===s.id&&a.status==='pending'}).length;
+      return '<div class="card tap" onclick="go(\'manage\',\''+s.id+'\')">'+
+        '<div class="row"><span class="name">'+esc(s.title)+'</span>'+
+        (p?'<span class="pill wait">지원 '+p+'건</span>':'<span class="pill tag">'+s.members.length+'/'+s.cap+'명</span>')+'</div>'+
+        '<div class="meta">'+(s.closed?'모집 마감됨':'모집 중')+' · '+esc(s.day)+'요일 '+esc(s.time)+'</div></div>';
+    }).join('');
+  }
+  return h;
+}
+function cancelApp(id){
+  askConfirm('지원을 취소할까요?',function(){
+    var a=S.apps.filter(function(x){return x.id===id})[0];
+    S.apps=S.apps.filter(function(x){return x.id!==id});
+    if(a){var s=study(a.study); if(s) notify(s.host,user(S.me).nick+'님이 '+s.title+' 지원을 취소했어요.','지원','apply');}
+    toast('지원을 취소했어요.'); go('home','mine');
+  });
+}
+
+/* 필터 */
+SCREENS.filter=function(){
+  var days=['월','화','수','목','금','토','일'];
+  return '<section class="screen">'+head('검색 필터','home')+
+    '<div class="scroll">'+
+    '<div class="field"><label>진행 방식</label><div class="chips">'+
+    ['오프라인','온라인'].map(function(m){
+      return '<span class="chip '+(filt.mode===m?'on':'')+'" onclick="filt.mode=(filt.mode===\''+m+'\'?\'\':\''+m+'\');go(\'filter\')">'+m+'</span>';
+    }).join('')+
+    '<span class="chip '+(filt.mode===''?'on':'')+'" onclick="filt.mode=\'\';go(\'filter\')">상관없음</span></div></div>'+
+    '<div class="field"><label>지역</label><input id="f_region" value="'+esc(filt.region)+'" placeholder="예: 강남"></div>'+
+    '<div class="field"><label>요일</label><div class="chips">'+
+    days.map(function(d){
+      return '<span class="chip '+(filt.days.indexOf(d)>=0?'on':'')+'" onclick="toggleDay(\''+d+'\')">'+d+'</span>';
+    }).join('')+'</div></div>'+
+    '<div class="field"><label>정렬</label><select id="f_sort">'+
+    '<option value="room"'+(filt.sort==='room'?' selected':'')+'>남은 자리 많은 순</option>'+
+    '<option value="deadline"'+(filt.sort==='deadline'?' selected':'')+'>마감 임박순</option></select></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:7px"><button class="btn ghost" style="flex:1" onclick="resetFilt()">초기화</button>'+
+    '<button class="btn" style="flex:2" onclick="applyFilt()">결과 보기</button></div></section>';
+};
+function toggleDay(d){
+  var i=filt.days.indexOf(d);
+  if(i>=0) filt.days.splice(i,1); else filt.days.push(d);
+  filt.region=document.getElementById('f_region').value.trim();
+  go('filter');
+}
+function applyFilt(){
+  filt.region=document.getElementById('f_region').value.trim();
+  filt.sort=document.getElementById('f_sort').value;
+  go('home','explore');
+}
+
+/* 개설 */
+SCREENS.create=function(){
+  if(!S.me) return SCREENS.login();
+  return '<section class="screen hasnav">'+head('스터디 개설','home')+
+    '<div class="scroll">'+
+    '<div class="field"><label>스터디 이름</label><input id="c_title" placeholder="예: 영어 문법 함께 정리하기"></div>'+
+    '<div class="field"><label>진행 방식</label><select id="c_mode"><option>오프라인</option><option>온라인</option></select></div>'+
+    '<div class="field"><label>모임 장소</label><select id="c_place">'+
+    '<option>스터디카페</option><option>공공도서관</option><option>프랜차이즈 카페</option><option>학교 시설</option><option>화상</option></select>'+
+    '<p class="sub" style="margin-top:6px">안전을 위해 공공장소만 등록할 수 있어요. 정확한 주소는 매칭 확정 후 참여자에게만 공개됩니다.</p></div>'+
+    '<div class="field"><label>지역</label><input id="c_region" placeholder="예: 강남역 도보 5분"></div>'+
+    '<div class="field"><label>요일과 시간</label><div style="display:flex;gap:7px">'+
+    '<select id="c_day" style="flex:1">'+['월','화','수','목','금','토','일'].map(function(d){return '<option>'+d+'</option>'}).join('')+'</select>'+
+    '<input id="c_time" type="time" value="15:00" style="flex:1"></div></div>'+
+    '<div class="field"><label>정원</label><select id="c_cap">'+
+    [3,4,5,6,8].map(function(n){return '<option'+(n===4?' selected':'')+'>'+n+'</option>'}).join('')+'</select>'+
+    '<p class="sub" style="margin-top:6px">오프라인 모임은 3명 이상을 권장합니다.</p></div>'+
+    '<div class="field"><label>모집 마감일</label><input id="c_dl" type="date" value="2026-09-30"></div>'+
+    '<div class="field"><label>소개</label><textarea id="c_desc" placeholder="어떻게 진행할지 적어주세요"></textarea></div>'+
+    '<hr><h2>지원 조건</h2>'+
+    '<div class="field"><label>학년</label><div class="chips" id="c_grades">'+
+    [1,2,3].map(function(g){return '<span class="chip on" onclick="this.classList.toggle(\'on\')" data-g="'+g+'">고'+g+'</span>'}).join('')+'</div></div>'+
+    '<div class="field"><label>준비 정도</label><select id="c_level">'+
+    '<option>처음이어도 괜찮아요</option><option>해본 적 있어요</option><option>상관없음</option></select></div>'+
+    '<div class="field"><label>지원 질문 (선택, 최대 2개)</label>'+
+    '<input id="c_q1" placeholder="예: 어떤 전형을 준비하고 있나요?" style="margin-bottom:7px">'+
+    '<input id="c_q2" placeholder="질문을 하나 더 추가할 수 있어요"></div>'+
+    '<div id="c_err"></div></div>'+
+    '<button class="btn" onclick="doCreate()">스터디 열기</button>'+nav('create')+'</section>';
+};
+function doCreate(){
+  var t=document.getElementById('c_title').value.trim();
+  var r=document.getElementById('c_region').value.trim();
+  var e=document.getElementById('c_err');
+  if(t.length<2){e.innerHTML='<div class="err">스터디 이름을 입력해 주세요.</div>';return;}
+  if(!r){e.innerHTML='<div class="err">지역을 입력해 주세요.</div>';return;}
+  var gs=[];
+  document.querySelectorAll('#c_grades .chip.on').forEach(function(c){gs.push(parseInt(c.dataset.g,10))});
+  if(!gs.length){e.innerHTML='<div class="err">지원 가능한 학년을 하나 이상 선택해 주세요.</div>';return;}
+  var qs=[document.getElementById('c_q1').value.trim(),document.getElementById('c_q2').value.trim()]
+    .filter(function(q){return q});
+  var s={id:nid('s'),host:S.me,title:t,mode:document.getElementById('c_mode').value,
+    place:document.getElementById('c_place').value,region:r,
+    day:document.getElementById('c_day').value,time:document.getElementById('c_time').value,
+    cap:parseInt(document.getElementById('c_cap').value,10),
+    deadline:document.getElementById('c_dl').value,
+    desc:document.getElementById('c_desc').value.trim()||'소개가 아직 없어요.',
+    grades:gs,level:document.getElementById('c_level').value,qs:qs,members:[S.me],closed:false};
+  S.studies.push(s);
+  toast('스터디를 열었어요.');
+  go('manage',s.id);
+}
+
+/* 상세 */
+SCREENS.detail=function(id){
+  var s=study(id);
+  if(!s) return '<section class="screen">'+head('스터디','home')+emptyBox('◇','방장이 스터디를 닫았어요',
+    '더 이상 볼 수 없는 스터디입니다.','홈으로','go(\'home\')')+'</section>';
+  var d=dleft(s.deadline), left=s.cap-s.members.length;
+  var mine=s.members.indexOf(S.me)>=0;
+  var app=S.apps.filter(function(a){return a.study===s.id&&a.user===S.me})[0];
+  var h='<section class="screen">'+head('스터디 상세','home')+'<div class="scroll">'+
+    '<h1 style="font-size:19px">'+esc(s.title)+'</h1>'+
+    '<div class="chips" style="margin-top:10px"><span class="pill tag">'+esc(s.mode)+'</span>'+
+    '<span class="pill tag">'+s.grades.map(function(g){return '고'+g}).join('·')+'</span>'+
+    '<span class="pill tag">'+esc(s.level)+'</span></div>'+
+    '<div class="card"><div class="dl">'+
+    '<div><b>진행 방식</b>'+esc(s.mode)+'</div>'+
+    '<div><b>지역</b>'+esc(s.region)+'</div>'+
+    '<div><b>요일·시간</b>'+esc(s.day)+'요일 '+esc(s.time)+'</div>'+
+    '<div><b>장소 유형</b>'+esc(s.place)+'</div>'+
+    '<div><b>정원</b>'+s.members.length+' / '+s.cap+'명</div>'+
+    '<div><b>모집 마감</b>'+esc(s.deadline)+(d>0?' ('+d+'일 남음)':' (마감)')+'</div>'+
+    '</div></div>'+
+    '<h2 style="margin-top:16px">소개</h2><p>'+esc(s.desc)+'</p>'+
+    '<h2 style="margin-top:16px">방장</h2><div class="card">'+
+    '<div class="row"><span class="name">'+esc(user(s.host).nick)+'</span>'+
+    '<span class="pill tag">고'+user(s.host).grade+' '+user(s.host).cls+'반</span></div></div>';
+  if(mine){
+    h+='<div class="note" style="margin-top:14px">모임 장소: '+esc(s.place)+' · '+esc(s.region)+'<br>'+
+      esc(s.day)+'요일 '+esc(s.time)+'에 만나요.</div></div>'+
+      '<button class="btn" onclick="go(\'chat\',\''+s.id+'\')">채팅 열기</button></section>';
+  } else if(s.closed||d<=0){
+    h+='</div>'+emptyBox('✕','모집이 끝난 스터디예요','비슷한 조건의 스터디를 찾아볼까요?','스터디 둘러보기','go(\'home\')')+'</section>';
+  } else if(app){
+    var lab=app.status==='pending'?'승인 대기 중이에요':'이 스터디는 지원이 거절되었어요';
+    h+='<div class="note" style="margin-top:14px">'+lab+'</div></div>'+
+      '<button class="btn" disabled>지원 완료</button></section>';
+  } else {
+    h+='<div class="note" style="margin-top:14px">정확한 모임 장소와 학년·반·번호는 방장이 지원을 승인한 뒤에 공개됩니다.'+
+      (left<=0?'<br>정원이 찼지만 대기 지원은 계속 받고 있어요.':'')+'</div></div>'+
+      '<button class="btn" onclick="go(\'apply\',\''+s.id+'\')">'+(left<=0?'대기 지원하기':'지원하기')+'</button></section>';
+  }
+  return h;
+};
+
+/* 지원 */
+SCREENS.apply=function(id){
+  var s=study(id), u=me();
+  if(!s) return SCREENS.home();
+  return '<section class="screen">'+head('지원서 작성','detail')+
+    '<div class="scroll"><div class="card"><div class="row"><span class="name">내 정보</span></div>'+
+    '<div class="chips" style="margin-top:8px;margin-bottom:0">'+
+    '<span class="pill tag">고등학교 '+u.grade+'학년</span></div>'+
+    '<p class="sub" style="margin-top:8px">방장에게는 학년만 보입니다. 반·번호와 닉네임 외 정보는 승인 후에만 공개돼요.</p></div>'+
+    (s.grades.indexOf(u.grade)<0?'<div class="note" style="margin-bottom:12px">이 스터디는 고'+s.grades.join('·고')+'를 찾고 있어요. 지원은 가능하지만 승인되지 않을 수 있습니다.</div>':'')+
+    '<div class="field" style="margin-top:14px"><label>짧은 자기소개</label>'+
+    '<textarea id="ap_intro" placeholder="어떤 준비를 하고 있는지 두세 줄로 적어주세요"></textarea></div>'+
+    s.qs.map(function(q,i){
+      return '<div class="field"><label>'+esc(q)+'</label><textarea id="ap_q'+i+'" placeholder="방장이 설정한 질문이에요"></textarea></div>';
+    }).join('')+
+    '<div class="field"><label>스터디는 처음인가요?</label><select id="ap_lv">'+
+    '<option>처음이에요</option><option>해본 적 있어요</option></select></div>'+
+    '<div id="ap_err"></div>'+
+    '<div class="note">연락처나 SNS 아이디는 지원서에 쓰지 마세요. 매칭이 확정되면 앱 안에서 바로 대화할 수 있어요.</div></div>'+
+    '<button class="btn" onclick="doApply(\''+s.id+'\')">지원 제출</button></section>';
+};
+function doApply(id){
+  var s=study(id), u=me();
+  var intro=document.getElementById('ap_intro').value.trim();
+  var e=document.getElementById('ap_err');
+  if(intro.length<10){e.innerHTML='<div class="err">자기소개를 10글자 이상 적어주세요.</div>';return;}
+  if(/01[016-9][-\s]?\d{3,4}[-\s]?\d{4}|@[a-zA-Z0-9_.]+/.test(intro)){
+    e.innerHTML='<div class="err">연락처나 SNS 아이디는 지원서에 적을 수 없어요.</div>';return;}
+  var ans=s.qs.map(function(q,i){return document.getElementById('ap_q'+i).value.trim()});
+  S.apps.push({id:nid('a'),study:s.id,user:S.me,intro:intro,answers:ans,
+    level:document.getElementById('ap_lv').value,status:'pending',at:Date.now()});
+  notify(s.host,u.nick+'님이 '+s.title+'에 지원했어요.','새 지원','apply');
+  toast('지원이 제출되었어요.\n방장이 확인하면 알림으로 알려드릴게요.');
+  go('home','mine');
+}
+
+/* 지원자 관리 */
+SCREENS.manage=function(id){
+  var s=study(id);
+  if(!s||s.host!==S.me) return SCREENS.home();
+  var pend=S.apps.filter(function(a){return a.study===s.id&&a.status==='pending'});
+  var done=S.apps.filter(function(a){return a.study===s.id&&a.status!=='pending'});
+  var left=s.cap-s.members.length;
+  var h='<section class="screen">'+head('지원자 관리','home')+'<div class="scroll">'+
+    '<div class="row" style="margin-bottom:12px"><span style="font-size:14.5px;font-weight:600">'+esc(s.title)+'</span>'+
+    '<span class="pill tag">'+s.members.length+' / '+s.cap+'명</span></div>'+
+    '<div style="display:flex;gap:7px;margin-bottom:14px">'+
+    '<button class="btn ghost" style="flex:1" onclick="go(\'editstudy\',\''+s.id+'\')">정보 수정</button>'+
+    '<button class="btn ghost" style="flex:1" onclick="go(\'chat\',\''+s.id+'\')">채팅 열기</button></div>';
+  if(!pend.length&&!done.length){
+    h+=emptyBox('◌','아직 지원자가 없어요','스터디가 목록에 노출되고 있어요.<br>조금만 기다려 주세요.','');
+  } else {
+    h+=pend.map(function(a){return appCard(a,s,true)}).join('');
+    if(done.length){h+='<hr><h2 style="font-size:14px">처리한 지원</h2>'+done.map(function(a){return appCard(a,s,false)}).join('');}
+  }
+  h+='<div class="note">정원이 차도 지원은 계속 받을 수 있어요. 자리가 생기면 대기 중인 지원자를 바로 승인할 수 있습니다.'+
+    (left<=0?'<br>지금은 자리가 없어 승인 시 정원 초과 안내가 나옵니다.':'')+'</div>';
+  return h+'</div></section>';
+};
+function appCard(a,s,act){
+  var u=user(a.user);
+  var st=a.status==='approved'?'<span class="pill ok">승인됨</span>':
+         a.status==='rejected'?'<span class="pill no">거절됨</span>':'<span class="sub">'+ago(a.at)+'</span>';
+  var h='<div class="card"><div class="row"><span class="name">'+esc(u.nick)+'</span>'+st+'</div>'+
+    '<div class="chips" style="margin-top:7px;margin-bottom:0">'+
+    '<span class="pill tag">고'+u.grade+'</span><span class="pill tag">'+esc(a.level)+'</span></div>'+
+    '<p style="font-size:12.5px;margin-top:9px">'+esc(a.intro)+'</p>';
+  s.qs.forEach(function(q,i){
+    h+='<div style="font-size:12px;margin-top:9px"><span class="sub">'+esc(q)+'</span><br>'+esc(a.answers[i]||'(답변 없음)')+'</div>';
+  });
+  if(act) h+='<div style="display:flex;gap:7px;margin-top:11px">'+
+    '<button class="btn sm" style="flex:1" onclick="decide(\''+a.id+'\',\'approved\')">승인</button>'+
+    '<button class="btn sm danger" style="flex:1" onclick="decide(\''+a.id+'\',\'rejected\')">거절</button></div>';
+  return h+'</div>';
+}
+function decide(aid,st){
+  var a=S.apps.filter(function(x){return x.id===aid})[0]; if(!a) return;
+  var s=study(a.study);
+  if(st==='approved'){
+    if(s.members.length>=s.cap){
+      askConfirm('정원이 이미 찼어요. 그래도 승인할까요?\n승인하면 정원이 1명 늘어납니다.',function(){
+        s.cap++; approveApp(a,s);
+      });
+      return;
+    }
+    approveApp(a,s);
+  } else {
+    a.status='rejected';
+    notify(a.user,s.title+' 지원이 아쉽게도 거절되었어요. 다른 스터디도 둘러보세요.','지원 결과','result');
+    toast('지원을 거절했어요.');
+    go('manage',s.id);
+  }
+}
+function approveApp(a,s){
+  a.status='approved';
+  if(s.members.indexOf(a.user)<0) s.members.push(a.user);
+  notify(a.user,s.title+' 지원이 승인되었어요. 모임 장소를 확인해 주세요.','매칭 확정','result');
+  S.msgs.push({id:nid('m'),study:s.id,user:'sys',
+    text:user(a.user).nick+'님이 스터디에 합류했어요.',at:Date.now()});
+  toast(user(a.user).nick+'님을 승인했어요.\n장소와 일정이 공개되었습니다.');
+  go('manage',s.id);
+}
+
+/* 스터디 수정 */
+SCREENS.editstudy=function(id){
+  var s=study(id); if(!s||s.host!==S.me) return SCREENS.home();
+  var others=s.members.length-1;
+  return '<section class="screen">'+head('스터디 수정','manage')+'<div class="scroll">'+
+    (others>0?'<div class="note" style="margin-bottom:14px">시간, 장소, 정원을 바꾸면 참여 중인 '+others+'명에게 바로 알림이 갑니다.</div>':'')+
+    '<div class="field"><label>스터디 이름</label><input id="e_title" value="'+esc(s.title)+'"></div>'+
+    '<div class="field"><label>모임 장소</label><select id="e_place">'+
+    ['스터디카페','공공도서관','프랜차이즈 카페','학교 시설','화상'].map(function(p){
+      return '<option'+(p===s.place?' selected':'')+'>'+p+'</option>'}).join('')+'</select></div>'+
+    '<div class="field"><label>지역</label><input id="e_region" value="'+esc(s.region)+'"></div>'+
+    '<div class="field"><label>요일과 시간</label><div style="display:flex;gap:7px">'+
+    '<select id="e_day" style="flex:1">'+['월','화','수','목','금','토','일'].map(function(d){
+      return '<option'+(d===s.day?' selected':'')+'>'+d+'</option>'}).join('')+'</select>'+
+    '<input id="e_time" type="time" value="'+esc(s.time)+'" style="flex:1"></div></div>'+
+    '<div class="field"><label>정원</label><input id="e_cap" type="number" min="'+s.members.length+'" max="12" value="'+s.cap+'">'+
+    '<p class="sub" style="margin-top:6px">이미 참여 중인 '+s.members.length+'명보다 적게 줄일 수는 없어요.</p></div>'+
+    '<div class="field"><label>모집 마감일</label><input id="e_dl" type="date" value="'+esc(s.deadline)+'"></div>'+
+    '<div class="field"><label>소개</label><textarea id="e_desc">'+esc(s.desc)+'</textarea></div>'+
+    '<div id="e_err"></div>'+
+    '<button class="btn" onclick="saveStudy(\''+s.id+'\')">변경 사항 저장</button>'+
+    '<hr><h2 style="font-size:14px">스터디 닫기</h2>'+
+    '<p>더 이상 모집하지 않는다면 모집만 마감하거나, 스터디 자체를 삭제할 수 있어요.</p>'+
+    '<div style="display:flex;gap:7px;margin-top:12px">'+
+    '<button class="btn ghost" style="flex:1" onclick="closeStudy(\''+s.id+'\')">'+(s.closed?'모집 재개':'모집 마감')+'</button>'+
+    '<button class="btn danger" style="flex:1" onclick="delStudy(\''+s.id+'\')">스터디 삭제</button></div>'+
+    '</div></section>';
+};
+function saveStudy(id){
+  var s=study(id);
+  var cap=parseInt(document.getElementById('e_cap').value,10);
+  var e=document.getElementById('e_err');
+  if(cap<s.members.length){e.innerHTML='<div class="err">참여 중인 '+s.members.length+'명보다 적게 줄일 수 없어요.</div>';return;}
+  var chg=[];
+  var nd=document.getElementById('e_day').value, nt=document.getElementById('e_time').value;
+  var np=document.getElementById('e_place').value, nr=document.getElementById('e_region').value.trim();
+  if(nd!==s.day||nt!==s.time) chg.push('모임 시간이 '+nd+'요일 '+nt+'로 바뀌었어요');
+  if(np!==s.place||nr!==s.region) chg.push('모임 장소가 '+np+' · '+nr+'로 바뀌었어요');
+  if(cap!==s.cap) chg.push('정원이 '+cap+'명으로 바뀌었어요');
+  s.title=document.getElementById('e_title').value.trim()||s.title;
+  s.place=np; s.region=nr; s.day=nd; s.time=nt; s.cap=cap;
+  s.deadline=document.getElementById('e_dl').value;
+  s.desc=document.getElementById('e_desc').value.trim()||s.desc;
+  var sent=0;
+  if(chg.length){
+    s.members.forEach(function(m){
+      if(m===S.me) return;
+      notify(m,'['+s.title+'] '+chg.join(', ')+'.','스터디 변경','change'); sent++;
+    });
+    S.msgs.push({id:nid('m'),study:s.id,user:'sys',text:chg.join(' / ')+'.',at:Date.now()});
+  }
+  toast('변경 사항을 저장했어요.'+(sent?'\n멤버 '+sent+'명에게 변경 알림을 보냈습니다.':''));
+  go('manage',s.id);
+}
+function closeStudy(id){
+  var s=study(id); s.closed=!s.closed;
+  if(s.closed){
+    var p=S.apps.filter(function(a){return a.study===s.id&&a.status==='pending'});
+    p.forEach(function(a){notify(a.user,'['+s.title+'] 모집이 마감되었어요. 지원 결과를 기다려 주세요.','모집 마감','change')});
+    toast('모집을 마감했어요. 참여 중인 멤버는 그대로 유지됩니다.');
+  } else toast('모집을 다시 열었어요.');
+  go('editstudy',s.id);
+}
+function delStudy(id){
+  var s=study(id);
+  var mem=s.members.filter(function(m){return m!==S.me}).length;
+  var app=S.apps.filter(function(a){return a.study===s.id&&a.status==='pending'}).length;
+  askConfirm('스터디를 삭제할까요?\n참여 중인 멤버 '+mem+'명과 지원자 '+app+'명에게 삭제 알림이 갑니다.',function(){
+    s.members.forEach(function(m){if(m!==S.me) notify(m,'['+s.title+'] 방장이 스터디를 닫았어요. 더 이상 모임이 열리지 않습니다.','스터디 삭제','close')});
+    S.apps.filter(function(a){return a.study===s.id&&a.status==='pending'})
+      .forEach(function(a){notify(a.user,'['+s.title+'] 스터디가 삭제되어 지원이 취소되었어요.','스터디 삭제','close')});
+    S.studies=S.studies.filter(function(x){return x.id!==id});
+    S.apps=S.apps.filter(function(a){return a.study!==id});
+    S.msgs=S.msgs.filter(function(m){return m.study!==id});
+    toast('스터디를 삭제했어요.\n멤버 '+mem+'명과 지원자 '+app+'명에게 안내를 보냈습니다.');
+    go('home','mine');
+  });
+}
+
+/* 채팅 */
+SCREENS.chats=function(){
+  if(!S.me) return SCREENS.login();
+  var list=S.studies.filter(function(s){return s.members.indexOf(S.me)>=0});
+  var h='<section class="screen hasnav">'+head('채팅')+'<div class="scroll">';
+  if(!list.length) h+=emptyBox('◌','아직 채팅방이 없어요','스터디에 참여하면 채팅방이 만들어져요.','스터디 둘러보기','go(\'home\')');
+  else h+=list.map(function(s){
+    var last=S.msgs.filter(function(m){return m.study===s.id}).slice(-1)[0];
+    return '<div class="card tap" onclick="go(\'chat\',\''+s.id+'\')">'+
+      '<div class="row"><span class="name">'+esc(s.title)+'</span>'+
+      '<span class="sub">'+(last?ago(last.at):'')+'</span></div>'+
+      '<div class="meta">'+esc(last?last.text.slice(0,34):'대화를 시작해 보세요')+'</div></div>';
+  }).join('');
+  return h+'</div>'+nav('chats')+'</section>';
+};
+SCREENS.chat=function(id){
+  var s=study(id);
+  if(!s) return '<section class="screen">'+head('채팅','chats')+emptyBox('◇','방장이 스터디를 닫았어요','더 이상 볼 수 없는 채팅방입니다.','홈으로','go(\'home\')')+'</section>';
+  if(s.members.indexOf(S.me)<0) return SCREENS.home();
+  var ms=S.msgs.filter(function(m){return m.study===s.id});
+  var h='<section class="screen">'+head(s.title,'chats')+'<div class="scroll" id="chatbox">'+
+    '<div class="sys">매칭이 확정되었습니다.<br>모임 장소: '+esc(s.place)+' · '+esc(s.region)+'<br>'+esc(s.day)+'요일 '+esc(s.time)+'</div>'+
+    '<div class="sys" style="background:var(--wait-bg);color:var(--wait-fg)">전화번호나 SNS 아이디를 주고받지 않아도 괜찮아요. 불편한 일이 있으면 신고할 수 있습니다.</div>'+
+    ms.map(function(m){
+      if(m.user==='sys') return '<div class="sys">'+esc(m.text)+'</div>';
+      if(m.user===S.me) return '<div class="msg me">'+esc(m.text)+'</div>';
+      return '<div class="msg them"><div class="who">'+esc(user(m.user).nick)+'</div>'+esc(m.text)+'</div>';
+    }).join('')+
+    '</div><div style="display:flex;gap:7px;margin-top:10px">'+
+    '<input id="chat_in" placeholder="메시지 입력" style="flex:1" onkeydown="if(event.key===\'Enter\')send(\''+s.id+'\')">'+
+    '<button class="btn sm" style="flex:none" onclick="send(\''+s.id+'\')">전송</button></div></section>';
+  return h;
+};
+function send(id){
+  var el=document.getElementById('chat_in'), t=el.value.trim();
+  if(!t) return;
+  var s=study(id);
+  S.msgs.push({id:nid('m'),study:id,user:S.me,text:t,at:Date.now()});
+  s.members.forEach(function(m){if(m!==S.me) notify(m,'['+s.title+'] '+user(S.me).nick+': '+t.slice(0,30),'새 메시지','chat')});
+  go('chat',id);
+  var b=document.getElementById('chatbox'); if(b) b.scrollTop=b.scrollHeight;
+}
+
+/* 알림 */
+SCREENS.alerts=function(){
+  if(!S.me) return SCREENS.login();
+  var list=S.notis.filter(function(n){return n.user===S.me}).sort(function(a,b){return b.at-a.at});
+  var h='<section class="screen hasnav"><div class="top"><span class="title">알림</span>'+
+    '<button class="link" style="margin-left:auto" onclick="readAll()">모두 읽음</button></div><div class="scroll">';
+  if(!list.length) h+=emptyBox('◌','새 알림이 없어요','스터디 소식이 생기면 여기에 쌓여요.','');
+  else h+=list.map(function(n){
+    return '<div class="alert"><span class="dot '+(n.read?'read':'')+'"></span><div>'+
+      '<div class="b">'+esc(n.text)+'</div><div class="tm">'+ago(n.at)+' · '+esc(n.kind)+'</div></div></div>';
+  }).join('');
+  return h+'</div>'+nav('alerts')+'</section>';
+};
+function readAll(){
+  S.notis.forEach(function(n){if(n.user===S.me) n.read=true});
+  go('alerts');
+}
+
+/* 설정 */
+SCREENS.settings=function(){
+  var u=me(); if(!u) return SCREENS.login();
+  return '<section class="screen hasnav">'+head('설정')+'<div class="scroll">'+
+    '<div class="card"><div class="row"><span class="name">'+esc(u.nick)+'</span>'+
+    '<span class="pill tag">고'+u.grade+' '+u.cls+'반 '+u.num+'번</span></div>'+
+    '<div class="meta">아이디 '+esc(u.username)+' · '+esc(u.phone)+'</div></div>'+
+    '<div class="setrow" onclick="go(\'profile\')"><div><div class="t">내 정보 수정</div>'+
+    '<div class="d">닉네임, 학년·반·번호, 전화번호, 비밀번호</div></div><span style="color:var(--faint)">›</span></div>'+
+    '<div class="setrow" onclick="go(\'notify\')"><div><div class="t">알림 설정</div>'+
+    '<div class="d">스터디 변경, 모임 리마인더, 마케팅 수신</div></div><span style="color:var(--faint)">›</span></div>'+
+    '<div class="setrow" onclick="go(\'safety\')"><div><div class="t">안전하게 이용하기</div>'+
+    '<div class="d">모임 규칙, 신고, 운영 책임 범위</div></div><span style="color:var(--faint)">›</span></div>'+
+    '<div class="setrow" onclick="switchUser()"><div><div class="t">계정 전환 (체험용)</div>'+
+    '<div class="d">호스트와 지원자 흐름을 번갈아 확인해 보세요</div></div><span style="color:var(--faint)">›</span></div>'+
+    '<hr><button class="btn ghost" onclick="doLogout()">로그아웃</button>'+
+    '<div style="text-align:center;margin-top:16px"><button class="link" onclick="go(\'leave\')">회원 탈퇴</button></div>'+
+    '<div style="text-align:center;margin-top:10px"><button class="link" onclick="resetData()">체험 데이터 초기화</button></div>'+
+    '</div>'+nav('settings')+'</section>';
+};
+function switchUser(){
+  askPick('전환할 계정을 선택하세요',S.users.map(function(u){
+    return {label:u.nick+(u.id===S.me?' (현재)':''),value:u.id};
+  }),function(id){
+    S.me=id; toast(user(id).nick+'님으로 전환했어요.'); go('home');
+  });
+}
+function doLogout(){
+  askConfirm('로그아웃할까요?',function(){S.me=null; go('login');});
+}
+function resetData(){
+  askConfirm('모든 체험 데이터를 초기화할까요?',function(){S=seed(); go('login');});
+}
+
+SCREENS.profile=function(){
+  var u=me();
+  return '<section class="screen">'+head('내 정보 수정','settings')+'<div class="scroll">'+
+    '<div class="field"><label>닉네임</label><input id="p_nick" value="'+esc(u.nick)+'"></div>'+
+    '<div class="field"><label>학년</label><select id="p_grade">'+
+    [1,2,3].map(function(g){return '<option value="'+g+'"'+(u.grade===g?' selected':'')+'>'+g+'학년</option>'}).join('')+'</select>'+
+    '<p class="sub" style="margin-top:6px">학년이 올라갔다면 새 학년으로 바꿔주세요.</p></div>'+
+    '<div class="field"><label>반</label><input id="p_cls" type="number" min="1" max="20" value="'+u.cls+'"></div>'+
+    '<div class="field"><label>번호</label><input id="p_num" type="number" min="1" max="40" value="'+u.num+'"></div>'+
+    '<div class="field"><label>전화번호</label><input id="p_phone" value="'+esc(u.phone)+'"></div>'+
+    '<div class="field"><label>준비 목표</label><select id="p_goal">'+
+    ['학생부종합','특목고','대회·동아리','기타'].map(function(g){
+      return '<option'+(u.goal===g?' selected':'')+'>'+g+'</option>'}).join('')+'</select></div>'+
+    '<div id="p_err"></div><hr>'+
+    '<div class="setrow" style="cursor:default"><div><div class="t">아이디</div>'+
+    '<div class="d">'+esc(u.username)+' · 아이디는 바꿀 수 없어요</div></div></div>'+
+    '<div class="field" style="margin-top:12px"><label>비밀번호 변경 (선택)</label>'+
+    '<input id="p_pw" type="password" placeholder="새 비밀번호, 바꾸지 않으면 비워두세요"></div></div>'+
+    '<button class="btn" onclick="saveProfile()">저장</button></section>';
+};
+function saveProfile(){
+  var u=me(), n=document.getElementById('p_nick').value.trim();
+  var cls=parseInt(document.getElementById('p_cls').value,10);
+  var num=parseInt(document.getElementById('p_num').value,10);
+  var phone=document.getElementById('p_phone').value.trim();
+  var pw=document.getElementById('p_pw').value;
+  var e=document.getElementById('p_err');
+  if(n.length<2){e.innerHTML='<div class="err">닉네임을 2글자 이상 입력해 주세요.</div>';return;}
+  if(!cls||cls<1||cls>20){e.innerHTML='<div class="err">반을 올바르게 입력해 주세요.</div>';return;}
+  if(!num||num<1||num>40){e.innerHTML='<div class="err">번호를 올바르게 입력해 주세요.</div>';return;}
+  if(!/^01[016789]-?\d{3,4}-?\d{4}$/.test(phone)){e.innerHTML='<div class="err">전화번호 형식을 확인해 주세요.</div>';return;}
+  if(pw&&pw.length<4){e.innerHTML='<div class="err">새 비밀번호를 4자 이상 입력해 주세요.</div>';return;}
+  u.nick=n; u.grade=parseInt(document.getElementById('p_grade').value,10);
+  u.cls=cls; u.num=num; u.phone=phone;
+  u.goal=document.getElementById('p_goal').value;
+  if(pw) u.password=pw;
+  toast(pw?'저장했어요. 비밀번호도 바뀌었어요.':'저장했어요.'); go('settings');
+}
+
+SCREENS.notify=function(){
+  var u=me();
+  var items=[['result','지원 결과','승인, 거절, 대기 순번 변동'],
+    ['change','스터디 정보 변경','시간, 장소, 정원이 바뀔 때'],
+    ['close','스터디 종료·삭제','참여 중인 스터디가 닫힐 때'],
+    ['remind','모임 리마인더','모임 하루 전과 2시간 전'],
+    ['apply','새 지원자','내가 연 스터디에 지원이 들어올 때'],
+    ['chat','채팅 메시지','스터디 채팅방의 새 메시지']];
+  return '<section class="screen">'+head('알림 설정','settings')+'<div class="scroll">'+
+    '<h2 style="font-size:14px;margin-top:4px">스터디 알림</h2>'+
+    items.map(function(i){
+      return '<div class="setrow" style="cursor:default"><div><div class="t">'+i[1]+'</div><div class="d">'+i[2]+'</div></div>'+
+        '<input type="checkbox" '+(u.notif[i[0]]!==false?'checked':'')+' onchange="setNotif(\''+i[0]+'\',this.checked)"></div>';
+    }).join('')+
+    '<hr><h2 style="font-size:14px">그 밖의 알림</h2>'+
+    '<div class="setrow" style="cursor:default"><div><div class="t">마케팅 정보 수신</div>'+
+    '<div class="d">새 스터디 추천, 이벤트 소식 (선택 동의)</div></div>'+
+    '<input type="checkbox" '+(u.marketing?'checked':'')+' onchange="setMk(this.checked)"></div>'+
+    '<div class="setrow" style="cursor:default"><div><div class="t">야간 알림 받지 않기</div>'+
+    '<div class="d">밤 10시부터 아침 8시까지 소리를 끕니다</div></div>'+
+    '<input type="checkbox" '+(u.notif.night?'checked':'')+' onchange="setNotif(\'night\',this.checked)"></div>'+
+    '<div class="note" style="margin-top:16px">지원 결과와 스터디 변경 알림은 모임에 직접 영향을 주는 내용이라 꺼두지 않는 것을 권합니다.</div>'+
+    '</div></section>';
+};
+function setNotif(k,v){me().notif[k]=v;save();toast(v?'알림을 켰어요.':'알림을 껐어요.');}
+function setMk(v){
+  me().marketing=v; save();
+  toast(v?'마케팅 정보 수신에 동의했어요.':'마케팅 정보 수신 동의를 철회했어요.');
+}
+
+SCREENS.leave=function(){
+  var hosted=S.studies.filter(function(s){return s.host===S.me});
+  return '<section class="screen">'+head('회원 탈퇴','settings')+'<div class="scroll">'+
+    '<p>탈퇴하면 아래 정보가 사라집니다.</p>'+
+    '<div class="card" style="margin-top:14px"><div class="dl">'+
+    '<div>· 닉네임, 학년·반·번호, 전화번호</div><div>· 참여했던 스터디 기록과 채팅</div>'+
+    '<div>· 아이디, 비밀번호</div></div></div>'+
+    (hosted.length?'<div class="note" style="margin-top:14px">내가 연 스터디가 '+hosted.length+'개 있어요. 탈퇴하면 해당 스터디가 삭제되고 멤버에게 알림이 갑니다.</div>':'')+
+    '<div class="field" style="margin-top:16px"><label>탈퇴 이유 (선택)</label><select>'+
+    '<option>원래 목표를 다 했어요</option><option>원하는 스터디가 없어요</option>'+
+    '<option>불편한 경험이 있었어요</option><option>기타</option></select></div>'+
+    '<div class="agree"><input type="checkbox" id="lv" onchange="document.getElementById(\'lvb\').disabled=!this.checked">'+
+    '<div class="t">안내를 확인했고 탈퇴에 동의합니다</div></div></div>'+
+    '<button class="btn danger" id="lvb" disabled onclick="doLeave()">탈퇴하기</button></section>';
+};
+function doLeave(){
+  var uid=S.me;
+  S.studies.filter(function(s){return s.host===uid}).forEach(function(s){
+    s.members.forEach(function(m){if(m!==uid) notify(m,'['+s.title+'] 방장이 탈퇴하여 스터디가 닫혔어요.','스터디 삭제','close')});
+  });
+  S.studies=S.studies.filter(function(s){return s.host!==uid});
+  S.studies.forEach(function(s){s.members=s.members.filter(function(m){return m!==uid})});
+  S.apps=S.apps.filter(function(a){return a.user!==uid});
+  S.notis=S.notis.filter(function(n){return n.user!==uid});
+  S.users=S.users.filter(function(u){return u.id!==uid});
+  S.me=null;
+  toast('탈퇴가 완료되었어요.');
+  go('login');
+}
+
+SCREENS.safety=function(){
+  return '<section class="screen">'+head('안전하게 이용하기','settings')+'<div class="scroll">'+
+    '<h2>누가 이용할 수 있나요</h2><p>가입할 때 학년·반·번호와 전화번호를 입력해야 해서, 아무나 쉽게 만들 수 있는 계정이 아닙니다. 이메일 인증 같은 추가 확인은 앞으로 더 도입할 예정이에요. 다른 학생 행세를 하거나 정보를 지어내 가입한 계정은 발견 즉시 정지됩니다.</p><hr>'+
+    '<h2>어떤 정보가 공개되나요</h2><p>평소에는 닉네임과 학년만 보입니다. 반·번호와 정확한 모임 장소는 방장이 지원을 승인한 뒤 참여자에게만 공개됩니다.</p><hr>'+
+    '<h2>오프라인 모임 규칙</h2><p>모임 장소는 스터디카페, 도서관, 프랜차이즈 카페 같은 공공장소만 등록할 수 있습니다. 개인 주택이나 밀폐된 공간은 등록할 수 없어요.</p>'+
+    '<p style="margin-top:8px">3인 이상 모임을 권장합니다. 첫 모임 일정은 보호자에게 미리 알려두면 좋아요.</p>'+
+    '<p style="margin-top:8px">연락처와 SNS 아이디는 앱 밖에서 주고받지 않는 것을 권장합니다.</p><hr>'+
+    '<h2>신고와 차단</h2><p>모든 프로필, 스터디, 채팅 화면에서 신고할 수 있습니다. 접수된 신고는 24시간 안에 검토하며, 신고가 누적되면 매칭 기능이 제한됩니다.</p>'+
+    '<button class="btn ghost" style="margin-top:10px" onclick="toast(\'신고가 접수되었어요. 24시간 안에 검토할게요.\')">신고하기</button><hr>'+
+    '<h2>운영 책임 범위</h2><p>이 서비스는 학생 간 스터디 매칭을 돕는 공간입니다. 모임 참석 여부와 진행은 참여자가 스스로 결정하며, 모임 중 발생한 일에 대해 서비스가 대신 책임지지는 않습니다. 위험한 상황에서는 즉시 모임을 중단하고 보호자나 112에 연락해 주세요.</p>'+
+    '</div></section>';
+};
+
+/* 시작 */
+load();
+if(S.me&&me()) view={name:'home',arg:'explore'}; else view={name:'login'};
+render();
+</script>
+</body>
+</html>
