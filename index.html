@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>슼터디 — 고등학생 스터디 매칭 플랫폼</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#8C6F52">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="슼터디">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{
@@ -171,14 +178,17 @@ try{
 <script>
 /* ---------- 상태 ---------- */
 var FB=null, db=null, auth=null;
-var ME=null, MEPUB=null, MEPRIV=null, UID=null;
+var ME=null, MEPUB=null, MEPRIV=null, UID=null, IS_ADMIN=false;
 var USERS={}, STUDIES=[], APPS_MINE=[], APPS_HOST=[], NOTIS=[], MSGS={};
 var subs=[], msgSubs={}, signingUp=false, gotPub=false;
 var view={name:'splash'}, draft={};
-var LIVE={home:1,detail:1,manage:1,chats:1,chat:1,alerts:1,settings:1};
+var LIVE={home:1,detail:1,manage:1,chats:1,chat:1,alerts:1,settings:1,admin:1};
+var adminTab='studies', adminUserDetail={};
 
 /* 채팅 메시지 보관 기간 (48시간) — 이 시간이 지나면 자동으로 화면에서 사라지고 삭제됩니다 */
 var MSG_TTL_MS=48*60*60*1000;
+/* 거절된 지원자가 같은 스터디에 다시 지원할 수 있을 때까지의 대기 시간 (24시간). 강퇴된 경우는 기간과 상관없이 재지원 불가. */
+var REAPPLY_COOLDOWN_MS=24*60*60*1000;
 
 /* ---------- 접근자 ---------- */
 function me(){return ME;}
@@ -325,7 +335,7 @@ setTimeout(function(){
 },10000);
 
 function clearState(){
-  ME=MEPUB=MEPRIV=UID=null; gotPub=false;
+  ME=MEPUB=MEPRIV=UID=null; gotPub=false; IS_ADMIN=false; adminUserDetail={};
   USERS={};STUDIES=[];APPS_MINE=[];APPS_HOST=[];NOTIS=[];MSGS={};
 }
 function unsubAll(){
@@ -342,6 +352,9 @@ function subscribe(uid){
   subs.push(c.onSnapshot(c.doc(db,'users',uid,'private','info'),function(s){
     MEPRIV=s.exists()?s.data():null; mergeMe();
   },fail));
+  subs.push(c.onSnapshot(c.doc(db,'admins',uid),function(s){
+    IS_ADMIN=s.exists(); refresh();
+  },function(e){IS_ADMIN=false;console.warn(e);}));
   subs.push(c.onSnapshot(c.collection(db,'users'),function(qs){
     USERS={}; docs(qs).forEach(function(u){USERS[u.id]=u});
     refresh();
@@ -607,7 +620,16 @@ function studyCard(s){
 function mineList(){
   var joined=STUDIES.filter(function(s){return (s.members||[]).indexOf(ME.id)>=0&&s.host!==ME.id});
   var hosted=STUDIES.filter(function(s){return s.host===ME.id});
-  var pend=APPS_MINE.filter(function(a){return a.status!=='approved'});
+  var latest={};
+  APPS_MINE.forEach(function(a){
+    var cur=latest[a.study];
+    if(!cur||(a.at||0)>(cur.at||0)) latest[a.study]=a;
+  });
+  var pend=Object.keys(latest).map(function(k){return latest[k];}).filter(function(a){
+    if(a.status==='pending'||a.status==='kicked') return true;
+    if(a.status==='rejected') return (Date.now()-(a.decidedAt||a.at))<REAPPLY_COOLDOWN_MS;
+    return false;
+  });
   var h='';
   if(!joined.length&&!hosted.length&&!pend.length)
     return emptyBox('◌','참여 중인 스터디가 없어요',
@@ -623,11 +645,14 @@ function mineList(){
   if(pend.length){
     h+=pend.map(function(a){
       var s=study(a.study); if(!s) return '';
-      var st=a.status==='pending'?['wait','승인 대기']:['no','거절됨'];
+      var st = a.status==='pending' ? ['wait','승인 대기']
+             : a.status==='kicked' ? ['no','강퇴됨'] : ['no','거절됨'];
+      var sub = a.status==='pending' ? '모임 장소는 승인 후 공개됩니다'
+              : a.status==='kicked' ? '이 스터디에는 다시 지원할 수 없어요'
+              : Math.ceil((REAPPLY_COOLDOWN_MS-(Date.now()-(a.decidedAt||a.at)))/3600000)+'시간 뒤에 다시 지원할 수 있어요';
       return '<div class="card"><div class="row"><span class="name">'+esc(s.title)+'</span>'+
         '<span class="pill '+st[0]+'">'+st[1]+'</span></div>'+
-        '<div class="meta">'+ago(a.at)+' 지원'+
-        (a.status==='pending'?'<br>모임 장소는 승인 후 공개됩니다':'')+'</div>'+
+        '<div class="meta">'+ago(a.at)+' 지원<br>'+sub+'</div>'+
         (a.status==='pending'?'<button class="btn ghost" style="margin-top:10px" onclick="cancelApp(\''+a.id+'\')">지원 취소</button>':'')+
         '</div>';
     }).join('');
@@ -755,7 +780,8 @@ SCREENS.detail=function(id){
     '더 이상 볼 수 없는 스터디입니다.','홈으로','go(\'home\')')+'</section>';
   var d=dleft(s.deadline), left=s.cap-s.members.length;
   var mine=(s.members||[]).indexOf(ME.id)>=0;
-  var app=APPS_MINE.filter(function(a){return a.study===s.id})[0];
+  var app=APPS_MINE.filter(function(a){return a.study===s.id})
+    .sort(function(a,b){return (b.at||0)-(a.at||0);})[0];
   var host=user(s.host);
   var h='<section class="screen">'+head('스터디 상세','home')+'<div class="scroll">'+
     '<h1 style="font-size:19px">'+esc(s.title)+'</h1>'+
@@ -780,14 +806,21 @@ SCREENS.detail=function(id){
       '<button class="btn" onclick="go(\'chat\',\''+s.id+'\')">채팅 열기</button></section>';
   } else if(s.closed||d<=0){
     h+='</div>'+emptyBox('✕','모집이 끝난 스터디예요','비슷한 조건의 스터디를 찾아볼까요?','스터디 둘러보기','go(\'home\')')+'</section>';
-  } else if(app){
-    var lab=app.status==='pending'?'승인 대기 중이에요':'이 스터디는 지원이 거절되었어요';
-    h+='<div class="note" style="margin-top:14px">'+lab+'</div></div>'+
+  } else if(app&&app.status==='pending'){
+    h+='<div class="note" style="margin-top:14px">승인 대기 중이에요</div></div>'+
       '<button class="btn" disabled>지원 완료</button></section>';
+  } else if(app&&app.status==='kicked'){
+    h+='<div class="note" style="margin-top:14px">이 스터디에서 내보내진 적이 있어 다시 지원할 수 없어요.</div></div>'+
+      '<button class="btn" disabled>지원 불가</button></section>';
+  } else if(app&&app.status==='rejected'&&(Date.now()-(app.decidedAt||app.at))<REAPPLY_COOLDOWN_MS){
+    var wait=Math.ceil((REAPPLY_COOLDOWN_MS-(Date.now()-(app.decidedAt||app.at)))/3600000);
+    h+='<div class="note" style="margin-top:14px">이 스터디는 지원이 거절되었어요.<br>'+wait+'시간 뒤에 다시 지원할 수 있어요.</div></div>'+
+      '<button class="btn" disabled>재지원 대기 중</button></section>';
   } else {
     h+='<div class="note" style="margin-top:14px">정확한 모임 장소와 학년·반·번호는 방장이 지원을 승인한 뒤에 공개됩니다.'+
-      (left<=0?'<br>정원이 찼지만 대기 지원은 계속 받고 있어요.':'')+'</div></div>'+
-      '<button class="btn" onclick="go(\'apply\',\''+s.id+'\')">'+(left<=0?'대기 지원하기':'지원하기')+'</button></section>';
+      (left<=0?'<br>정원이 찼지만 대기 지원은 계속 받고 있어요.':'')+
+      (app&&app.status==='rejected'?'<br>이전에 거절되었지만 이제 다시 지원할 수 있어요.':'')+'</div></div>'+
+      '<button class="btn" onclick="go(\'apply\',\''+s.id+'\')">'+(app&&app.status==='rejected'?'재지원하기':(left<=0?'대기 지원하기':'지원하기'))+'</button></section>';
   }
   return h;
 };
@@ -848,6 +881,16 @@ SCREENS.manage=function(id){
     '<div style="display:flex;gap:7px;margin-bottom:14px">'+
     '<button class="btn ghost" style="flex:1" onclick="go(\'editstudy\',\''+s.id+'\')">정보 수정</button>'+
     '<button class="btn ghost" style="flex:1" onclick="go(\'chat\',\''+s.id+'\')">채팅 열기</button></div>';
+  var others=s.members.filter(function(m){return m!==ME.id;});
+  if(others.length){
+    h+='<h2 style="font-size:14px">현재 멤버</h2>'+
+      others.map(function(m){
+        var u=user(m);
+        return '<div class="card"><div class="row"><span class="name">'+esc(u.nick)+'</span>'+
+          '<span class="pill tag">고'+esc(u.grade)+'</span></div>'+
+          '<button class="btn sm danger" style="margin-top:9px" onclick="kickMember(\''+s.id+'\',\''+m+'\',\''+esc(u.nick).replace(/'/g,"\\'")+'\')">내보내기</button></div>';
+      }).join('')+'<hr>';
+  }
   if(!pend.length&&!done.length){
     h+=emptyBox('◌','아직 지원자가 없어요','스터디가 목록에 노출되고 있어요.<br>조금만 기다려 주세요.','');
   } else {
@@ -861,7 +904,8 @@ SCREENS.manage=function(id){
 function appCard(a,s,act){
   var u=user(a.user);
   var st=a.status==='approved'?'<span class="pill ok">승인됨</span>':
-         a.status==='rejected'?'<span class="pill no">거절됨</span>':'<span class="sub">'+ago(a.at)+'</span>';
+         a.status==='rejected'?'<span class="pill no">거절됨</span>':
+         a.status==='kicked'?'<span class="pill no">강퇴됨</span>':'<span class="sub">'+ago(a.at)+'</span>';
   var h='<div class="card"><div class="row"><span class="name">'+esc(u.nick)+'</span>'+st+'</div>'+
     '<div class="chips" style="margin-top:7px;margin-bottom:0">'+
     '<span class="pill tag">고'+esc(u.grade)+'</span><span class="pill tag">'+esc(a.level)+'</span></div>'+
@@ -886,7 +930,7 @@ function decide(aid,st){
     }
     approveApp(a,s,s.cap);
   } else {
-    FB.updateDoc(FB.doc(db,'applications',a.id),{status:'rejected'}).then(function(){
+    FB.updateDoc(FB.doc(db,'applications',a.id),{status:'rejected',decidedAt:Date.now()}).then(function(){
       return notify(a.user,s.title+' 지원이 아쉽게도 거절되었어요. 다른 스터디도 둘러보세요.','지원 결과','result');
     }).then(function(){toast('지원을 거절했어요.');}).catch(fail);
   }
@@ -894,7 +938,7 @@ function decide(aid,st){
 function approveApp(a,s,cap){
   var nick=user(a.user).nick;
   FB.updateDoc(FB.doc(db,'studies',s.id),{members:FB.arrayUnion(a.user),cap:cap})
-    .then(function(){return FB.updateDoc(FB.doc(db,'applications',a.id),{status:'approved'});})
+    .then(function(){return FB.updateDoc(FB.doc(db,'applications',a.id),{status:'approved',decidedAt:Date.now()});})
     .then(function(){
       return FB.addDoc(FB.collection(db,'studies',s.id,'messages'),
         {user:'sys',text:nick+'님이 스터디에 합류했어요.',at:Date.now()});
@@ -904,6 +948,28 @@ function approveApp(a,s,cap){
     })
     .then(function(){toast(nick+'님을 승인했어요.\n장소와 일정이 공개되었습니다.');})
     .catch(fail);
+}
+function kickMember(sid,uid,nick){
+  var s=study(sid); if(!s||s.host!==ME.id) return;
+  askConfirm(nick+'님을 스터디에서 내보낼까요?\n이 스터디에는 다시 지원할 수 없게 돼요.',function(){
+    var apps=appsFor(sid).filter(function(a){return a.user===uid&&a.status==='approved';});
+    FB.updateDoc(FB.doc(db,'studies',sid),{members:FB.arrayRemove(uid)})
+      .then(function(){
+        if(!apps.length) return null;
+        var b=FB.writeBatch(db);
+        apps.forEach(function(a){b.update(FB.doc(db,'applications',a.id),{status:'kicked',decidedAt:Date.now()});});
+        return b.commit();
+      })
+      .then(function(){
+        return FB.addDoc(FB.collection(db,'studies',sid,'messages'),
+          {user:'sys',text:nick+'님이 스터디에서 나가졌어요.',at:Date.now()});
+      })
+      .then(function(){
+        return notify(uid,'['+s.title+'] 스터디에서 내보내졌어요.','스터디 변경','change');
+      })
+      .then(function(){toast(nick+'님을 내보냈어요.');go('manage',sid);})
+      .catch(fail);
+  });
 }
 
 /* ---------- 스터디 수정 ---------- */
@@ -1080,6 +1146,8 @@ SCREENS.settings=function(){
     '<div class="d">스터디 변경, 모임 리마인더, 마케팅 수신</div></div><span style="color:var(--faint)">›</span></div>'+
     '<div class="setrow" onclick="go(\'safety\')"><div><div class="t">안전하게 이용하기</div>'+
     '<div class="d">모임 규칙, 신고, 운영 책임 범위</div></div><span style="color:var(--faint)">›</span></div>'+
+    (IS_ADMIN?'<div class="setrow" onclick="go(\'admin\')"><div><div class="t">관리자 모드</div>'+
+    '<div class="d">회원 계정, 스터디 관리</div></div><span style="color:var(--faint)">›</span></div>':'')+
     '<hr><button class="btn ghost" onclick="doLogout()">로그아웃</button>'+
     '<div style="text-align:center;margin-top:16px"><button class="link" onclick="go(\'leave\')">회원 탈퇴</button></div>'+
     '</div>'+nav('settings')+'</section>';
@@ -1248,6 +1316,137 @@ SCREENS.safety=function(){
     '<h2>운영 책임 범위</h2><p>이 서비스는 학생 간 스터디 매칭을 돕는 공간입니다. 모임 참석 여부와 진행은 참여자가 스스로 결정하며, 모임 중 발생한 일에 대해 서비스가 대신 책임지지는 않습니다. 위험한 상황에서는 즉시 모임을 중단하고 보호자나 112에 연락해 주세요.</p>'+
     '</div></section>';
 };
+
+/* ---------- 관리자 모드 ---------- */
+/* 관리자 지정은 앱이 아니라 Firebase 콘솔에서 합니다:
+   Firestore Database → 데이터 탭 → admins 컬렉션 시작 → 문서 ID에 관리자 계정의 UID를 붙여넣고
+   저장하면 됩니다 (필드 값은 아무거나 넣어도 되고, 문서가 존재하는지만 확인합니다).
+   해당 UID는 이 화면(회원 목록)이나 설정 화면에서 확인할 수 있어요. */
+SCREENS.admin=function(tab){
+  if(!ME||!IS_ADMIN) return SCREENS.home();
+  tab=tab||adminTab; adminTab=tab;
+  var body = tab==='users' ? adminUsersList() : adminStudiesList();
+  return '<section class="screen hasnav">'+head('관리자 모드','settings')+
+    '<div class="tabs"><button class="tab '+(tab==='studies'?'on':'')+'" onclick="go(\'admin\',\'studies\')">스터디</button>'+
+    '<button class="tab '+(tab==='users'?'on':'')+'" onclick="go(\'admin\',\'users\')">회원</button></div>'+
+    '<div class="scroll">'+body+'</div>'+nav('settings')+'</section>';
+};
+function adminStudiesList(){
+  if(!STUDIES.length) return emptyBox('◌','스터디가 없어요','','','');
+  return '<div class="note" style="margin-bottom:12px">정정이 필요하거나 부적절한 스터디를 삭제할 수 있어요. 삭제하면 방장과 멤버 전원에게 알림이 갑니다.</div>'+
+    STUDIES.slice().sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);}).map(function(s){
+      var h=user(s.host);
+      return '<div class="card"><div class="row"><span class="name">'+esc(s.title)+'</span>'+
+        '<span class="pill tag">'+s.members.length+'/'+s.cap+'명</span></div>'+
+        '<div class="meta">방장 '+esc(h.nick)+' · '+esc(s.mode)+' · '+esc(s.region)+'<br>'+
+        esc(s.day)+'요일 '+esc(s.time)+' · '+(s.closed?'모집 마감됨':'모집 중')+'</div>'+
+        '<button class="btn sm danger" style="margin-top:9px" onclick="adminDeleteStudy(\''+s.id+'\')">스터디 삭제</button>'+
+        '</div>';
+    }).join('');
+}
+function adminUsersList(){
+  var list=Object.keys(USERS).map(function(id){return USERS[id];})
+    .sort(function(a,b){return String(a.nick||'').localeCompare(b.nick||'');});
+  if(!list.length) return emptyBox('◌','회원이 없어요','','','');
+  return '<div class="note" style="margin-bottom:12px">학교 재학생이 아닌 것으로 확인된 계정을 삭제할 수 있어요. 앱 안의 데이터는 바로 지워지지만, 로그인 계정 자체는 Firebase 콘솔 → Authentication에서 UID로 찾아 따로 삭제해야 완전히 로그인이 막혀요.</div>'+
+    list.map(function(u){
+      var mine=u.id===ME.id, ex=adminUserDetail[u.id];
+      return '<div class="card"><div class="row"><span class="name">'+esc(u.nick)+(mine?' (나)':'')+'</span>'+
+        '<span class="pill tag">고'+esc(u.grade)+'</span></div>'+
+        '<div class="meta">UID: '+esc(u.id)+'</div>'+
+        (ex
+          ?('<div class="meta">'+esc(ex.email||'(이메일 없음)')+
+             (ex.phone?' · '+esc(ex.phone):'')+
+             (ex.cls?' · '+esc(ex.cls)+'반 '+esc(ex.num)+'번':'')+'</div>')
+          :'<button class="btn ghost sm" style="margin-top:7px" onclick="adminLoadDetail(\''+u.id+'\')">상세 정보 보기</button>')+
+        (mine?'':'<button class="btn sm danger" style="margin-top:9px" onclick="adminDeleteUser(\''+u.id+'\',\''+esc(u.nick).replace(/'/g,"\\'")+'\')">계정 삭제</button>')+
+        '</div>';
+    }).join('');
+}
+function adminLoadDetail(uid){
+  FB.getDoc(FB.doc(db,'users',uid,'private','info')).then(function(s){
+    adminUserDetail[uid]=s.exists()?s.data():{};
+    go('admin','users');
+  }).catch(fail);
+}
+function adminDeleteStudy(id){
+  var s=study(id); if(!s) return;
+  askConfirm('['+s.title+'] 스터디를 삭제할까요?\n방장과 멤버 전원에게 삭제 알림이 갑니다.',function(){
+    var mem=s.members.slice();
+    Promise.all(mem.map(function(m){
+      return notify(m,'['+s.title+'] 운영자가 이 스터디를 삭제했어요. 문의는 학교 담당 선생님께 해주세요.','스터디 삭제','close');
+    })).then(function(){
+      return Promise.all([
+        FB.getDocs(FB.collection(db,'studies',id,'messages')),
+        FB.getDocs(FB.query(FB.collection(db,'applications'),FB.where('study','==',id)))
+      ]);
+    }).then(function(r){
+      var b=FB.writeBatch(db);
+      r[0].forEach(function(d){b.delete(d.ref);});
+      r[1].forEach(function(d){b.delete(d.ref);});
+      b.delete(FB.doc(db,'studies',id));
+      return b.commit();
+    }).then(function(){
+      toast('스터디를 삭제했어요.'); go('admin','studies');
+    }).catch(fail);
+  });
+}
+function adminDeleteUser(uid,nick){
+  askConfirm(nick+'님 계정을 삭제할까요?\n이 학생이 열었던 스터디, 채팅, 지원 내역이 모두 사라집니다.\n\n로그인 계정 자체는 Firebase 콘솔 Authentication에서 UID로 찾아 따로 삭제해야 완전히 막혀요.',function(){
+    var hosted=STUDIES.filter(function(s){return s.host===uid;});
+    var joined=STUDIES.filter(function(s){return s.host!==uid&&(s.members||[]).indexOf(uid)>=0;});
+    var notiPs=[];
+    hosted.forEach(function(s){
+      s.members.forEach(function(m){
+        if(m!==uid) notiPs.push(notify(m,'['+s.title+'] 방장 계정이 삭제되어 스터디가 닫혔어요.','스터디 삭제','close'));
+      });
+    });
+    Promise.all(notiPs).then(function(){
+      return Promise.all(hosted.map(function(s){
+        return Promise.all([
+          FB.getDocs(FB.collection(db,'studies',s.id,'messages')),
+          FB.getDocs(FB.query(FB.collection(db,'applications'),FB.where('study','==',s.id)))
+        ]).then(function(r){
+          var b=FB.writeBatch(db);
+          r[0].forEach(function(d){b.delete(d.ref);});
+          r[1].forEach(function(d){b.delete(d.ref);});
+          b.delete(FB.doc(db,'studies',s.id));
+          return b.commit();
+        });
+      }));
+    }).then(function(){
+      return Promise.all(joined.map(function(s){
+        return FB.updateDoc(FB.doc(db,'studies',s.id),{members:FB.arrayRemove(uid)});
+      }));
+    }).then(function(){
+      return Promise.all([
+        FB.getDocs(FB.query(FB.collection(db,'applications'),FB.where('user','==',uid))),
+        FB.getDocs(FB.query(FB.collection(db,'notifications'),FB.where('user','==',uid)))
+      ]);
+    }).then(function(r){
+      var b=FB.writeBatch(db);
+      r[0].forEach(function(d){b.delete(d.ref);});
+      r[1].forEach(function(d){b.delete(d.ref);});
+      b.delete(FB.doc(db,'users',uid,'private','info'));
+      b.delete(FB.doc(db,'users',uid));
+      return b.commit();
+    }).then(function(){
+      delete adminUserDetail[uid];
+      toast(nick+'님의 앱 데이터를 삭제했어요.\n로그인 계정은 Firebase 콘솔 Authentication에서 마저 삭제해 주세요.');
+      go('admin','users');
+    }).catch(fail);
+  });
+}
+</script>
+<!-- 4. PWA 등록 -->
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){
+      console.warn('서비스 워커 등록 실패 (오프라인 캐시/설치 기능만 영향, 앱 사용에는 지장 없음)',e);
+    });
+  });
+}
 </script>
 </body>
 </html>
