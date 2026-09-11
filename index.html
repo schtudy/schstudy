@@ -1236,4 +1236,21 @@ SCREENS.safety=function(){
 };
 </script>
 </body>
+  <script>
+  window.addEventListener('fb-fail', function(e) {
+    var msg = (e.detail || {}).message || '알 수 없는 에러';
+    document.getElementById('app').innerHTML = 
+      '<div style="padding:30px;text-align:center;white-space:pre-wrap">'
+      + 'Firebase 초기화 실패\n\n' + msg + '\n\n'
+      + 'F12 콘솔을 확인해 주세요.'
+      + '</div>';
+  });
+  
+  // 5초마다 상태 출력
+  setInterval(function() {
+    if (view.name === 'splash') {
+      console.log('Still loading...', {ready: !!FB, uid: UID, me: !!ME});
+    }
+  }, 5000);
+  </script>
 </html>
